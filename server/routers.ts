@@ -2,9 +2,11 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
+import { nodesRouter } from "./nodes";
 import { portalRouter } from "./portal";
 import { profileRouter } from "./profile";
 import { relationshipsRouter } from "./relationships";
+import { signalsRouter } from "./signals";
 
 export const appRouter = router({
   system: systemRouter,
@@ -18,6 +20,8 @@ export const appRouter = router({
   }),
   profile: profileRouter,
   portal: portalRouter,
+  nodes: nodesRouter,
+  signals: signalsRouter,
   relationships: relationshipsRouter,
 });
 
