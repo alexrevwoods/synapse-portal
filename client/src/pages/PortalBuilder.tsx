@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useRoute } from "wouter";
-import { ArrowLeft, Bell, Clock3, ExternalLink, Globe2, LayoutDashboard, Network, Plus, Save, Send, Sparkles } from "lucide-react";
+import { ArrowLeft, BarChart3, Bell, Clock3, ExternalLink, Globe2, LayoutDashboard, Network, Plus, Save, Send, ShieldAlert, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { startLogin } from "@/const";
 import { trpc } from "@/lib/trpc";
 import NodeGraphEditor from "@/components/NodeGraphEditor";
+import ProfileSwitcher from "@/components/ProfileSwitcher";
 
 const nodeOptions = [
   ["web", "Website"],
@@ -19,7 +20,7 @@ const nodeOptions = [
 type NodeType = (typeof nodeOptions)[number][0];
 
 export default function PortalBuilder() {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, user } = useAuth();
   const [, params] = useRoute("/builder/:profileId");
   const [, navigate] = useLocation();
   const profileId = Number(params?.profileId);
@@ -66,7 +67,7 @@ export default function PortalBuilder() {
 
   return (
     <main className="min-h-screen bg-[#070b14] text-white">
-      <header className="sticky top-0 z-30 border-b border-white/[.07] bg-[#070b14]/85 backdrop-blur-xl"><div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8"><div className="flex items-center gap-3"><Link href="/" className="flex items-center gap-2 text-xs font-bold text-slate-400 transition hover:text-cyan-100"><ArrowLeft size={14} /><span className="hidden sm:inline">Synapse</span></Link><span className="h-4 w-px bg-white/10" /><span className="font-display text-sm font-semibold text-white">Portal Builder</span></div><div className="flex items-center gap-2"><Link href={`/timeline/${profileId}`} className="secondary-button !px-3 !py-2.5 !text-xs"><Clock3 size={14} /> Timeline</Link><Link href={`/notifications/${profileId}`} className="secondary-button !px-3 !py-2.5 !text-xs"><Bell size={14} /> Alerts</Link><Link href={`/signals/${profileId}`} className="secondary-button !px-3 !py-2.5 !text-xs"><Send size={14} /> Signals</Link><Link href={`/network/${profileId}`} className="secondary-button !px-3 !py-2.5 !text-xs"><Network size={14} /> Network</Link><Link href={`/${profile.username}`} target="_blank" className="secondary-button !px-3 !py-2.5 !text-xs"><ExternalLink size={14} /> Preview</Link><button onClick={() => publish.mutate({ profileId, isPublished: !profile.isPublished })} disabled={publish.isPending} className={profile.isPublished ? "secondary-button !px-3 !py-2.5 !text-xs" : "primary-button !px-3 !py-2.5 !text-xs"}>{profile.isPublished ? "Unpublish" : "Publish Portal"}</button></div></div></header>
+      <header className="sticky top-0 z-30 border-b border-white/[.07] bg-[#070b14]/85 backdrop-blur-xl"><div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8"><div className="flex items-center gap-3"><Link href="/" className="flex items-center gap-2 text-xs font-bold text-slate-400 transition hover:text-cyan-100"><ArrowLeft size={14} /><span className="hidden sm:inline">Synapse</span></Link><span className="h-4 w-px bg-white/10" /><span className="font-display text-sm font-semibold text-white">Portal Builder</span></div><div className="flex items-center gap-2"><ProfileSwitcher activeProfileId={profileId} destination={(id) => `/builder/${id}`} />{user?.role === "admin" && <Link href="/moderation" className="secondary-button !px-3 !py-2.5 !text-xs"><ShieldAlert size={14} /> Review</Link>}<Link href={`/insights/${profileId}`} className="secondary-button !px-3 !py-2.5 !text-xs"><BarChart3 size={14} /> Insights</Link><Link href={`/timeline/${profileId}`} className="secondary-button !px-3 !py-2.5 !text-xs"><Clock3 size={14} /> Timeline</Link><Link href={`/notifications/${profileId}`} className="secondary-button !px-3 !py-2.5 !text-xs"><Bell size={14} /> Alerts</Link><Link href={`/signals/${profileId}`} className="secondary-button !px-3 !py-2.5 !text-xs"><Send size={14} /> Signals</Link><Link href={`/network/${profileId}`} className="secondary-button !px-3 !py-2.5 !text-xs"><Network size={14} /> Network</Link><Link href={`/${profile.username}`} target="_blank" className="secondary-button !px-3 !py-2.5 !text-xs"><ExternalLink size={14} /> Preview</Link><button onClick={() => publish.mutate({ profileId, isPublished: !profile.isPublished })} disabled={publish.isPending} className={profile.isPublished ? "secondary-button !px-3 !py-2.5 !text-xs" : "primary-button !px-3 !py-2.5 !text-xs"}>{profile.isPublished ? "Unpublish" : "Publish Portal"}</button></div></div></header>
       <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[17rem_minmax(0,1fr)] lg:px-8">
         <aside className="rounded-2xl border border-white/[.08] bg-slate-950/35 p-4 lg:sticky lg:top-22 lg:h-fit"><div className="flex items-center gap-2 border-b border-white/[.08] pb-4"><span className="grid h-9 w-9 place-items-center rounded-xl bg-cyan-200/10 text-cyan-100"><LayoutDashboard size={17} /></span><div><p className="text-xs font-extrabold text-white">{profile.displayName}</p><p className="mt-0.5 text-[10px] font-bold text-slate-600">@{profile.username}</p></div></div><div className="mt-4 space-y-1 text-xs font-bold"><button className="flex w-full items-center gap-2 rounded-lg bg-cyan-300/[.1] px-3 py-2.5 text-cyan-100"><Sparkles size={15} /> Portal setup</button><button className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-slate-500 hover:bg-white/[.03]"><Globe2 size={15} /> Theme: Atlas</button><button className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-slate-500 hover:bg-white/[.03]"><Send size={15} /> Signals <span className="ml-auto rounded bg-white/[.05] px-1.5 py-0.5 text-[9px]">Next</span></button></div><div className="mt-5 rounded-xl border border-white/[.07] bg-white/[.02] p-3 text-[11px] leading-5 text-slate-500">Your Portal is <span className={profile.isPublished ? "font-bold text-cyan-100" : "font-bold text-violet-200"}>{profile.isPublished ? "live" : "a draft"}</span>. Only published Profiles can follow or Connect.</div></aside>
         <div className="space-y-6">

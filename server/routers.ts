@@ -2,10 +2,12 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
+import { analyticsRouter } from "./analytics";
 import { nodesRouter } from "./nodes";
 import { portalRouter } from "./portal";
 import { profileRouter } from "./profile";
 import { relationshipsRouter } from "./relationships";
+import { moderationRouter, safetyRouter } from "./safety";
 import { signalsRouter } from "./signals";
 import { socialRouter } from "./social";
 
@@ -25,6 +27,9 @@ export const appRouter = router({
   signals: signalsRouter,
   relationships: relationshipsRouter,
   social: socialRouter,
+  safety: safetyRouter,
+  analytics: analyticsRouter,
+  moderation: moderationRouter,
 });
 
 export type AppRouter = typeof appRouter;

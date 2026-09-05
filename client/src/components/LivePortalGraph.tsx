@@ -43,7 +43,7 @@ function firstInitials(name: string) {
     .toUpperCase();
 }
 
-export default function LivePortalGraph({ profile, nodes, connections }: { profile: LiveProfile; nodes: LiveNode[]; connections: LiveConnection[] }) {
+export default function LivePortalGraph({ profile, nodes, connections, onNodeOpen }: { profile: LiveProfile; nodes: LiveNode[]; connections: LiveConnection[]; onNodeOpen?: (nodeId: number) => void }) {
   const [selectedId, setSelectedId] = useState<number | "root">("root");
   const selectedNode = nodes.find((node) => node.id === selectedId);
   const selected = selectedNode
@@ -103,7 +103,7 @@ export default function LivePortalGraph({ profile, nodes, connections }: { profi
               type="button"
               aria-pressed={selectedId === node.id}
               aria-label={`Open ${node.title}`}
-              onClick={() => setSelectedId(node.id)}
+              onClick={() => { setSelectedId(node.id); onNodeOpen?.(node.id); }}
               style={{ left: `${node.positionX}%`, top: `${node.positionY}%` } as CSSProperties}
               className={`portal-node ${selectedId === node.id ? "is-active" : ""}`}
             >

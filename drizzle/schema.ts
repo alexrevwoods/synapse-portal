@@ -163,6 +163,45 @@ export const profileRelationships = mysqlTable(
   (table) => ({ sourceIndex: index("profile_relationships_source_idx").on(table.sourceProfileId), targetIndex: index("profile_relationships_target_idx").on(table.targetProfileId), relationshipUnique: uniqueIndex("profile_relationships_unique").on(table.sourceProfileId, table.targetProfileId, table.type) }),
 );
 
+/** Blocks are Profile-to-Profile safety boundaries and immediately exclude social participation. */
+export const blocks = mysqlTable(
+  "blocks",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    sourceProfileId: int("sourceProfileId").notNull(),
+    targetProfileId: int("targetProfileId").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    sourceIndex: index("blocks_source_idx").on(table.sourceProfileId),
+    targetIndex: index("blocks_target_idx").on(table.targetProfileId),
+    blockUnique: uniqueIndex("blocks_unique").on(table.sourceProfileId, table.targetProfileId),
+  }),
+);
+
+/** Reports form a reviewable record for Profile, Signal, and comment safety concerns. */
+export const reports = mysqlTable(
+  "reports",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    reporterProfileId: int("reporterProfileId").notNull(),
+    targetProfileId: int("targetProfileId"),
+    signalId: int("signalId"),
+    commentId: int("commentId"),
+    reason: mysqlEnum("reportReason", ["spam", "harassment", "impersonation", "hate", "unsafe", "other"]).notNull(),
+    details: text("details"),
+    status: mysqlEnum("reportStatus", ["open", "reviewing", "resolved", "dismissed"]).default("open").notNull(),
+    reviewedByUserId: int("reviewedByUserId"),
+    reviewedAt: timestamp("reviewedAt"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    reporterIndex: index("reports_reporter_idx").on(table.reporterProfileId),
+    targetIndex: index("reports_target_idx").on(table.targetProfileId),
+    statusCreatedIndex: index("reports_status_created_idx").on(table.status, table.createdAt),
+  }),
+);
+
 export const notifications = mysqlTable(
   "notifications",
   {

@@ -5,7 +5,9 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
+import Insights from "./pages/Insights";
 import Join from "./pages/Join";
+import Moderation from "./pages/Moderation";
 import Network from "./pages/Network";
 import Notifications from "./pages/Notifications";
 import Onboarding from "./pages/Onboarding";
@@ -25,6 +27,8 @@ function Router() {
       <Route path="/network/:profileId" component={Network} />
       <Route path="/timeline/:profileId" component={Timeline} />
       <Route path="/notifications/:profileId" component={Notifications} />
+      <Route path="/insights/:profileId" component={Insights} />
+      <Route path="/moderation" component={Moderation} />
       <Route path="/:username" component={PublicPortal} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />

@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { acceptIncomingConnection, createNotification, getNetworkForProfile, getOwnedProfile, getPublishedProfileByUsername, upsertProfileRelationship } from "./db";
+import { acceptIncomingConnection, createNotification, getNetworkForProfile, getOwnedProfile, getPublishedProfileByUsername, isBlockedBetweenProfiles, upsertProfileRelationship } from "./db";
 import { normalizeUsername } from "./profile";
 import { protectedProcedure, router } from "./_core/trpc";
 
@@ -13,6 +13,7 @@ async function resolveRelationship(ctx: { user: { id: number } }, input: z.infer
   const target = await getPublishedProfileByUsername(normalizeUsername(input.targetUsername));
   if (!target) throw new TRPCError({ code: "NOT_FOUND", message: "This public Profile is not available" });
   if (source.id === target.id) throw new TRPCError({ code: "BAD_REQUEST", message: "A Profile cannot connect to itself" });
+  if (await isBlockedBetweenProfiles(source.id, target.id)) throw new TRPCError({ code: "FORBIDDEN", message: "This Profile is unavailable for social participation" });
   return { source, target };
 }
 

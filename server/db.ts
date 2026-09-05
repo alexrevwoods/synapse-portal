@@ -2,12 +2,15 @@ import { and, asc, desc, eq, inArray, isNull, or } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   type InsertUser,
+  analyticsEvents,
+  blocks,
   nodeConnections,
   notifications,
   profileMembers,
   profileNodes,
   profileRelationships,
   profiles,
+  reports,
   signalComments,
   signalReactions,
   signals,
@@ -283,17 +286,21 @@ export async function getTimelineForProfile(userId: number, profileId: number) {
   if (!db) return null;
   const profile = await getOwnedProfile(userId, profileId);
   if (!profile) return null;
-  const relationships = await db
-    .select()
-    .from(profileRelationships)
-    .where(
-      or(
-        and(eq(profileRelationships.sourceProfileId, profileId), eq(profileRelationships.type, "follow"), eq(profileRelationships.status, "accepted")),
-        and(eq(profileRelationships.sourceProfileId, profileId), eq(profileRelationships.type, "connection"), eq(profileRelationships.status, "accepted")),
-        and(eq(profileRelationships.targetProfileId, profileId), eq(profileRelationships.type, "connection"), eq(profileRelationships.status, "accepted")),
+  const [relationships, blockRows] = await Promise.all([
+    db
+      .select()
+      .from(profileRelationships)
+      .where(
+        or(
+          and(eq(profileRelationships.sourceProfileId, profileId), eq(profileRelationships.type, "follow"), eq(profileRelationships.status, "accepted")),
+          and(eq(profileRelationships.sourceProfileId, profileId), eq(profileRelationships.type, "connection"), eq(profileRelationships.status, "accepted")),
+          and(eq(profileRelationships.targetProfileId, profileId), eq(profileRelationships.type, "connection"), eq(profileRelationships.status, "accepted")),
+        ),
       ),
-    );
-  const networkProfileIds = relationships.map((relationship) => relationship.sourceProfileId === profileId ? relationship.targetProfileId : relationship.sourceProfileId);
+    db.select().from(blocks).where(or(eq(blocks.sourceProfileId, profileId), eq(blocks.targetProfileId, profileId))),
+  ]);
+  const blockedProfileIds = new Set(blockRows.map((block) => block.sourceProfileId === profileId ? block.targetProfileId : block.sourceProfileId));
+  const networkProfileIds = relationships.map((relationship) => relationship.sourceProfileId === profileId ? relationship.targetProfileId : relationship.sourceProfileId).filter((id) => !blockedProfileIds.has(id));
   const feedProfileIds = Array.from(new Set([profileId, ...networkProfileIds]));
   const rows = await db
     .select({ signal: signals, profile: profiles })
@@ -312,6 +319,7 @@ export async function toggleSignalReaction(userId: number, input: { profileId: n
   const signalRows = await db.select().from(signals).where(eq(signals.id, input.signalId)).limit(1);
   const signal = signalRows[0];
   if (!signal) return null;
+  if (await isBlockedBetweenProfiles(actor.id, signal.profileId)) return null;
   const existing = await db
     .select()
     .from(signalReactions)
@@ -334,6 +342,7 @@ export async function createSignalComment(userId: number, input: { profileId: nu
   const signalRows = await db.select().from(signals).where(eq(signals.id, input.signalId)).limit(1);
   const signal = signalRows[0];
   if (!signal) return null;
+  if (await isBlockedBetweenProfiles(actor.id, signal.profileId)) return null;
   if (input.parentCommentId) {
     const parentRows = await db.select().from(signalComments).where(and(eq(signalComments.id, input.parentCommentId), eq(signalComments.signalId, input.signalId))).limit(1);
     if (!parentRows[0]) return null;
@@ -389,4 +398,150 @@ export async function markNotificationsRead(userId: number, profileId: number) {
   if (!profile) return false;
   await db.update(notifications).set({ readAt: new Date() }).where(and(eq(notifications.profileId, profileId), isNull(notifications.readAt)));
   return true;
+}
+
+
+export async function isBlockedBetweenProfiles(firstProfileId: number, secondProfileId: number) {
+  const db = await getDb();
+  if (!db) return false;
+  const rows = await db
+    .select({ id: blocks.id })
+    .from(blocks)
+    .where(
+      or(
+        and(eq(blocks.sourceProfileId, firstProfileId), eq(blocks.targetProfileId, secondProfileId)),
+        and(eq(blocks.sourceProfileId, secondProfileId), eq(blocks.targetProfileId, firstProfileId)),
+      ),
+    )
+    .limit(1);
+  return Boolean(rows[0]);
+}
+
+export async function blockProfile(userId: number, input: { sourceProfileId: number; targetUsername: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is unavailable");
+  const source = await getOwnedProfile(userId, input.sourceProfileId);
+  const target = await getPublishedProfileByUsername(input.targetUsername);
+  if (!source || !target || source.id === target.id) return null;
+  await db.insert(blocks).values({ sourceProfileId: source.id, targetProfileId: target.id }).onDuplicateKeyUpdate({ set: { createdAt: new Date() } });
+  await db
+    .update(profileRelationships)
+    .set({ status: "blocked" })
+    .where(
+      or(
+        and(eq(profileRelationships.sourceProfileId, source.id), eq(profileRelationships.targetProfileId, target.id)),
+        and(eq(profileRelationships.sourceProfileId, target.id), eq(profileRelationships.targetProfileId, source.id)),
+      ),
+    );
+  return { source, target };
+}
+
+export async function createReport(userId: number, input: { reporterProfileId: number; targetProfileId?: number; signalId?: number; commentId?: number; reason: "spam" | "harassment" | "impersonation" | "hate" | "unsafe" | "other"; details?: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is unavailable");
+  const reporter = await getOwnedProfile(userId, input.reporterProfileId);
+  if (!reporter) return null;
+  if (!input.targetProfileId && !input.signalId && !input.commentId) return null;
+  const result = await db.insert(reports).values({
+    reporterProfileId: reporter.id,
+    targetProfileId: input.targetProfileId ?? null,
+    signalId: input.signalId ?? null,
+    commentId: input.commentId ?? null,
+    reason: input.reason,
+    details: input.details || null,
+  });
+  return Number(result[0].insertId);
+}
+
+export async function getReportsForModeration() {
+  const db = await getDb();
+  if (!db) return [];
+  const reportRows = await db
+    .select()
+    .from(reports)
+    .orderBy(asc(reports.status), desc(reports.createdAt))
+    .limit(100);
+  const profileIds = Array.from(new Set(reportRows.flatMap((report) => [report.reporterProfileId, report.targetProfileId].filter((id): id is number => id !== null))));
+  const relatedProfiles = profileIds.length ? await db.select().from(profiles).where(inArray(profiles.id, profileIds)) : [];
+  const profileMap = new Map(relatedProfiles.map((profile) => [profile.id, profile]));
+  return reportRows.map((report) => ({ report, reporter: profileMap.get(report.reporterProfileId) ?? null, target: report.targetProfileId ? profileMap.get(report.targetProfileId) ?? null : null }));
+}
+
+export async function resolveReport(userId: number, reportId: number, status: "reviewing" | "resolved" | "dismissed") {
+  const db = await getDb();
+  if (!db) throw new Error("Database is unavailable");
+  await db.update(reports).set({ status, reviewedByUserId: userId, reviewedAt: status === "reviewing" ? null : new Date() }).where(eq(reports.id, reportId));
+  const rows = await db.select().from(reports).where(eq(reports.id, reportId)).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function recordAnalyticsEvent(input: { profileId: number; nodeId?: number; signalId?: number; eventType: "portal_view" | "node_open" | "signal_view"; visitorId?: string; sessionId?: string }) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.insert(analyticsEvents).values({
+    profileId: input.profileId,
+    nodeId: input.nodeId ?? null,
+    signalId: input.signalId ?? null,
+    eventType: input.eventType,
+    visitorId: input.visitorId ?? null,
+    sessionId: input.sessionId ?? null,
+  });
+  return Number(result[0].insertId);
+}
+
+export async function getProfileAnalytics(userId: number, profileId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const profile = await getOwnedProfile(userId, profileId);
+  if (!profile) return null;
+  const [eventRows, profileSignals, relationships, nodeRows] = await Promise.all([
+    db.select().from(analyticsEvents).where(eq(analyticsEvents.profileId, profileId)).orderBy(desc(analyticsEvents.occurredAt)),
+    db.select().from(signals).where(eq(signals.profileId, profileId)),
+    db.select().from(profileRelationships).where(or(eq(profileRelationships.sourceProfileId, profileId), eq(profileRelationships.targetProfileId, profileId))),
+    db.select().from(profileNodes).where(eq(profileNodes.profileId, profileId)),
+  ]);
+  const signalIds = profileSignals.map((signal) => signal.id);
+  const [reactionRows, commentRows] = signalIds.length
+    ? await Promise.all([
+        db.select().from(signalReactions).where(inArray(signalReactions.signalId, signalIds)),
+        db.select().from(signalComments).where(inArray(signalComments.signalId, signalIds)),
+      ])
+    : [[], []];
+  const now = new Date();
+  const dayStart = new Date(now);
+  dayStart.setHours(0, 0, 0, 0);
+  const activity = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(dayStart);
+    date.setDate(dayStart.getDate() - (6 - index));
+    const next = new Date(date);
+    next.setDate(date.getDate() + 1);
+    const events = eventRows.filter((event) => event.occurredAt >= date && event.occurredAt < next);
+    return {
+      label: new Intl.DateTimeFormat("en", { weekday: "short" }).format(date),
+      date: date.toISOString().slice(0, 10),
+      views: events.filter((event) => event.eventType === "portal_view").length,
+      nodeOpens: events.filter((event) => event.eventType === "node_open").length,
+      signalViews: events.filter((event) => event.eventType === "signal_view").length,
+    };
+  });
+  const nodeOpens = nodeRows.map((node) => ({
+    id: node.id,
+    title: node.title,
+    opens: eventRows.filter((event) => event.nodeId === node.id && event.eventType === "node_open").length,
+  })).sort((first, second) => second.opens - first.opens);
+  return {
+    profile,
+    overview: {
+      portalViews: eventRows.filter((event) => event.eventType === "portal_view").length,
+      nodeOpens: eventRows.filter((event) => event.eventType === "node_open").length,
+      signalViews: eventRows.filter((event) => event.eventType === "signal_view").length,
+      signals: profileSignals.length,
+      reactions: reactionRows.length,
+      comments: commentRows.length,
+      followers: relationships.filter((relationship) => relationship.type === "follow" && relationship.targetProfileId === profileId && relationship.status === "accepted").length,
+      connections: relationships.filter((relationship) => relationship.type === "connection" && relationship.status === "accepted").length,
+    },
+    activity,
+    nodeOpens,
+  };
 }
