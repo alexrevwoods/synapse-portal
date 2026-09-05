@@ -1,0 +1,3 @@
+# Visual verification
+
+The desktop home page at 1440×900 rendered successfully with the intended near-black, cyan, and violet design system, clear headline hierarchy, and distinct primary calls to action. The public Portal route was repaired from a literal `@` path to a username route with the `@` retained in visual copy. The initial repaired Portal exposed a zero-height positioned child layer, which placed nodes at the top of the graph; sizing the layer with `absolute inset-0` restored the intended radial graph. The final 1440×900 Portal capture now shows all six nodes, readable relationships, and the companion context card without clipping. A mobile Portal check remains outstanding.
