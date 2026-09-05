@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { acceptIncomingConnection, getNetworkForProfile, getOwnedProfile, getPublishedProfileByUsername, upsertProfileRelationship } from "./db";
+import { acceptIncomingConnection, createNotification, getNetworkForProfile, getOwnedProfile, getPublishedProfileByUsername, upsertProfileRelationship } from "./db";
 import { normalizeUsername } from "./profile";
 import { protectedProcedure, router } from "./_core/trpc";
 
@@ -25,17 +25,22 @@ export const relationshipsRouter = router({
 
   follow: protectedProcedure.input(relationshipInput).mutation(async ({ ctx, input }) => {
     const { source, target } = await resolveRelationship(ctx, input);
-    return upsertProfileRelationship({ sourceProfileId: source.id, targetProfileId: target.id, type: "follow", status: "accepted" });
+    const relationship = await upsertProfileRelationship({ sourceProfileId: source.id, targetProfileId: target.id, type: "follow", status: "accepted" });
+    await createNotification({ profileId: target.id, actorProfileId: source.id, type: "follow" });
+    return relationship;
   }),
 
   requestConnection: protectedProcedure.input(relationshipInput).mutation(async ({ ctx, input }) => {
     const { source, target } = await resolveRelationship(ctx, input);
-    return upsertProfileRelationship({ sourceProfileId: source.id, targetProfileId: target.id, type: "connection", status: "pending" });
+    const relationship = await upsertProfileRelationship({ sourceProfileId: source.id, targetProfileId: target.id, type: "connection", status: "pending" });
+    await createNotification({ profileId: target.id, actorProfileId: source.id, type: "connection_request" });
+    return relationship;
   }),
 
   acceptConnection: protectedProcedure.input(z.object({ profileId: z.number().int().positive(), relationshipId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
     const connection = await acceptIncomingConnection(ctx.user.id, input);
     if (!connection || connection.status !== "accepted") throw new TRPCError({ code: "NOT_FOUND", message: "Pending Connection request not found" });
+    await createNotification({ profileId: connection.sourceProfileId, actorProfileId: input.profileId, type: "connection_accepted" });
     return connection;
   }),
 });

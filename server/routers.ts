@@ -7,6 +7,7 @@ import { portalRouter } from "./portal";
 import { profileRouter } from "./profile";
 import { relationshipsRouter } from "./relationships";
 import { signalsRouter } from "./signals";
+import { socialRouter } from "./social";
 
 export const appRouter = router({
   system: systemRouter,
@@ -23,6 +24,7 @@ export const appRouter = router({
   nodes: nodesRouter,
   signals: signalsRouter,
   relationships: relationshipsRouter,
+  social: socialRouter,
 });
 
 export type AppRouter = typeof appRouter;

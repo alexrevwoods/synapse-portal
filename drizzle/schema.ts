@@ -11,10 +11,7 @@ import {
   varchar,
 } from "drizzle-orm/mysql-core";
 
-/**
- * The Account identity for authentication and billing. An Account can control
- * more than one Profile; social relationships always belong to Profiles.
- */
+/** The Account identity for authentication and billing. Social actions belong to Profiles. */
 export const users = mysqlTable("users", {
   id: int("id").autoincrement().primaryKey(),
   openId: varchar("openId", { length: 64 }).notNull().unique(),
@@ -32,6 +29,8 @@ export const nodeType = mysqlEnum("nodeType", ["identity", "social", "web", "con
 export const signalVisibility = mysqlEnum("signalVisibility", ["public", "followers", "connections", "subscribers", "private"]);
 export const relationshipType = mysqlEnum("relationshipType", ["follow", "connection", "collaborator", "associated"]);
 export const relationshipStatus = mysqlEnum("relationshipStatus", ["pending", "accepted", "declined", "blocked"]);
+export const reactionType = mysqlEnum("reactionType", ["spark"]);
+export const notificationType = mysqlEnum("notificationType", ["follow", "connection_request", "connection_accepted", "signal_reaction", "signal_comment", "signal_reply"]);
 
 export const profiles = mysqlTable(
   "profiles",
@@ -50,10 +49,7 @@ export const profiles = mysqlTable(
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   },
-  (table) => ({
-    usernameUnique: uniqueIndex("profiles_username_unique").on(table.username),
-    ownerIndex: index("profiles_owner_user_idx").on(table.ownerUserId),
-  }),
+  (table) => ({ usernameUnique: uniqueIndex("profiles_username_unique").on(table.username), ownerIndex: index("profiles_owner_user_idx").on(table.ownerUserId) }),
 );
 
 export const profileMembers = mysqlTable(
@@ -103,10 +99,7 @@ export const nodeConnections = mysqlTable(
     label: varchar("label", { length: 120 }),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
   },
-  (table) => ({
-    profileIndex: index("node_connections_profile_idx").on(table.profileId),
-    nodePairUnique: uniqueIndex("node_connections_pair_unique").on(table.fromNodeId, table.toNodeId),
-  }),
+  (table) => ({ profileIndex: index("node_connections_profile_idx").on(table.profileId), nodePairUnique: uniqueIndex("node_connections_pair_unique").on(table.fromNodeId, table.toNodeId) }),
 );
 
 export const signals = mysqlTable(
@@ -125,6 +118,36 @@ export const signals = mysqlTable(
   (table) => ({ profilePublishedIndex: index("signals_profile_published_idx").on(table.profileId, table.publishedAt) }),
 );
 
+export const signalReactions = mysqlTable(
+  "signal_reactions",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    signalId: int("signalId").notNull(),
+    profileId: int("profileId").notNull(),
+    type: reactionType.default("spark").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    signalIndex: index("signal_reactions_signal_idx").on(table.signalId),
+    profileIndex: index("signal_reactions_profile_idx").on(table.profileId),
+    uniqueReaction: uniqueIndex("signal_reactions_unique").on(table.signalId, table.profileId, table.type),
+  }),
+);
+
+export const signalComments = mysqlTable(
+  "signal_comments",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    signalId: int("signalId").notNull(),
+    profileId: int("profileId").notNull(),
+    parentCommentId: int("parentCommentId"),
+    body: text("body").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => ({ signalIndex: index("signal_comments_signal_idx").on(table.signalId, table.createdAt), parentIndex: index("signal_comments_parent_idx").on(table.parentCommentId) }),
+);
+
 export const profileRelationships = mysqlTable(
   "profile_relationships",
   {
@@ -137,11 +160,22 @@ export const profileRelationships = mysqlTable(
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   },
-  (table) => ({
-    sourceIndex: index("profile_relationships_source_idx").on(table.sourceProfileId),
-    targetIndex: index("profile_relationships_target_idx").on(table.targetProfileId),
-    relationshipUnique: uniqueIndex("profile_relationships_unique").on(table.sourceProfileId, table.targetProfileId, table.type),
-  }),
+  (table) => ({ sourceIndex: index("profile_relationships_source_idx").on(table.sourceProfileId), targetIndex: index("profile_relationships_target_idx").on(table.targetProfileId), relationshipUnique: uniqueIndex("profile_relationships_unique").on(table.sourceProfileId, table.targetProfileId, table.type) }),
+);
+
+export const notifications = mysqlTable(
+  "notifications",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    profileId: int("profileId").notNull(),
+    actorProfileId: int("actorProfileId"),
+    type: notificationType.notNull(),
+    signalId: int("signalId"),
+    commentId: int("commentId"),
+    readAt: timestamp("readAt"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => ({ profileCreatedIndex: index("notifications_profile_created_idx").on(table.profileId, table.createdAt), profileReadIndex: index("notifications_profile_read_idx").on(table.profileId, table.readAt) }),
 );
 
 /** Normalized interaction events preserve a path-analytics foundation from day one. */

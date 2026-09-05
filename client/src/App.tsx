@@ -7,10 +7,12 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import Join from "./pages/Join";
 import Network from "./pages/Network";
+import Notifications from "./pages/Notifications";
 import Onboarding from "./pages/Onboarding";
 import PortalBuilder from "./pages/PortalBuilder";
 import PublicPortal from "./pages/PublicPortal";
 import Signals from "./pages/Signals";
+import Timeline from "./pages/Timeline";
 
 function Router() {
   return (
@@ -21,6 +23,8 @@ function Router() {
       <Route path="/builder/:profileId" component={PortalBuilder} />
       <Route path="/signals/:profileId" component={Signals} />
       <Route path="/network/:profileId" component={Network} />
+      <Route path="/timeline/:profileId" component={Timeline} />
+      <Route path="/notifications/:profileId" component={Notifications} />
       <Route path="/:username" component={PublicPortal} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />

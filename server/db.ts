@@ -1,12 +1,15 @@
-import { and, asc, desc, eq, inArray, or } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, or } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   type InsertUser,
   nodeConnections,
+  notifications,
   profileMembers,
   profileNodes,
   profileRelationships,
   profiles,
+  signalComments,
+  signalReactions,
   signals,
   users,
 } from "../drizzle/schema";
@@ -232,4 +235,158 @@ export async function getPublicPortalByUsername(username: string) {
   ]);
   const publicNodeIds = new Set(nodes.map((node) => node.id));
   return { profile, nodes, connections: connections.filter((connection) => publicNodeIds.has(connection.fromNodeId) && publicNodeIds.has(connection.toNodeId)), recentSignals };
+}
+
+
+type FeedRow = {
+  signal: typeof signals.$inferSelect;
+  profile: typeof profiles.$inferSelect;
+};
+
+async function enrichSignals(rows: FeedRow[], currentProfileId?: number) {
+  const db = await getDb();
+  if (!db || rows.length === 0) return rows.map((row) => ({ ...row, reactionCount: 0, reactedByCurrentProfile: false, comments: [] }));
+  const signalIds = rows.map((row) => row.signal.id);
+  const [reactionRows, commentRows] = await Promise.all([
+    db.select().from(signalReactions).where(inArray(signalReactions.signalId, signalIds)),
+    db
+      .select({ comment: signalComments, profile: profiles })
+      .from(signalComments)
+      .innerJoin(profiles, eq(signalComments.profileId, profiles.id))
+      .where(inArray(signalComments.signalId, signalIds))
+      .orderBy(asc(signalComments.createdAt)),
+  ]);
+  return rows.map((row) => ({
+    ...row,
+    reactionCount: reactionRows.filter((reaction) => reaction.signalId === row.signal.id).length,
+    reactedByCurrentProfile: currentProfileId ? reactionRows.some((reaction) => reaction.signalId === row.signal.id && reaction.profileId === currentProfileId) : false,
+    comments: commentRows.filter((entry) => entry.comment.signalId === row.signal.id),
+  }));
+}
+
+export async function getPublicSignalFeed(username: string, currentProfileId?: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const profile = await getPublishedProfileByUsername(username);
+  if (!profile) return null;
+  const rows = await db
+    .select({ signal: signals, profile: profiles })
+    .from(signals)
+    .innerJoin(profiles, eq(signals.profileId, profiles.id))
+    .where(and(eq(signals.profileId, profile.id), eq(signals.visibility, "public")))
+    .orderBy(desc(signals.publishedAt));
+  return enrichSignals(rows, currentProfileId);
+}
+
+export async function getTimelineForProfile(userId: number, profileId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const profile = await getOwnedProfile(userId, profileId);
+  if (!profile) return null;
+  const relationships = await db
+    .select()
+    .from(profileRelationships)
+    .where(
+      or(
+        and(eq(profileRelationships.sourceProfileId, profileId), eq(profileRelationships.type, "follow"), eq(profileRelationships.status, "accepted")),
+        and(eq(profileRelationships.sourceProfileId, profileId), eq(profileRelationships.type, "connection"), eq(profileRelationships.status, "accepted")),
+        and(eq(profileRelationships.targetProfileId, profileId), eq(profileRelationships.type, "connection"), eq(profileRelationships.status, "accepted")),
+      ),
+    );
+  const networkProfileIds = relationships.map((relationship) => relationship.sourceProfileId === profileId ? relationship.targetProfileId : relationship.sourceProfileId);
+  const feedProfileIds = Array.from(new Set([profileId, ...networkProfileIds]));
+  const rows = await db
+    .select({ signal: signals, profile: profiles })
+    .from(signals)
+    .innerJoin(profiles, eq(signals.profileId, profiles.id))
+    .where(and(inArray(signals.profileId, feedProfileIds), eq(signals.visibility, "public")))
+    .orderBy(desc(signals.publishedAt));
+  return enrichSignals(rows, profileId);
+}
+
+export async function toggleSignalReaction(userId: number, input: { profileId: number; signalId: number }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is unavailable");
+  const actor = await getOwnedProfile(userId, input.profileId);
+  if (!actor || !actor.isPublished) return null;
+  const signalRows = await db.select().from(signals).where(eq(signals.id, input.signalId)).limit(1);
+  const signal = signalRows[0];
+  if (!signal) return null;
+  const existing = await db
+    .select()
+    .from(signalReactions)
+    .where(and(eq(signalReactions.signalId, input.signalId), eq(signalReactions.profileId, input.profileId), eq(signalReactions.type, "spark")))
+    .limit(1);
+  if (existing[0]) {
+    await db.delete(signalReactions).where(eq(signalReactions.id, existing[0].id));
+    return { active: false };
+  }
+  await db.insert(signalReactions).values({ signalId: input.signalId, profileId: input.profileId, type: "spark" });
+  if (signal.profileId !== input.profileId) await createNotification({ profileId: signal.profileId, actorProfileId: input.profileId, type: "signal_reaction", signalId: signal.id });
+  return { active: true };
+}
+
+export async function createSignalComment(userId: number, input: { profileId: number; signalId: number; body: string; parentCommentId?: number }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is unavailable");
+  const actor = await getOwnedProfile(userId, input.profileId);
+  if (!actor || !actor.isPublished) return null;
+  const signalRows = await db.select().from(signals).where(eq(signals.id, input.signalId)).limit(1);
+  const signal = signalRows[0];
+  if (!signal) return null;
+  if (input.parentCommentId) {
+    const parentRows = await db.select().from(signalComments).where(and(eq(signalComments.id, input.parentCommentId), eq(signalComments.signalId, input.signalId))).limit(1);
+    if (!parentRows[0]) return null;
+  }
+  const result = await db.insert(signalComments).values({ signalId: input.signalId, profileId: input.profileId, parentCommentId: input.parentCommentId ?? null, body: input.body });
+  const commentId = Number(result[0].insertId);
+  const rows = await db
+    .select({ comment: signalComments, profile: profiles })
+    .from(signalComments)
+    .innerJoin(profiles, eq(signalComments.profileId, profiles.id))
+    .where(eq(signalComments.id, commentId))
+    .limit(1);
+  const notificationProfileId = input.parentCommentId
+    ? (await db.select().from(signalComments).where(eq(signalComments.id, input.parentCommentId)).limit(1))[0]?.profileId
+    : signal.profileId;
+  if (notificationProfileId && notificationProfileId !== input.profileId) {
+    await createNotification({ profileId: notificationProfileId, actorProfileId: input.profileId, type: input.parentCommentId ? "signal_reply" : "signal_comment", signalId: signal.id, commentId });
+  }
+  return rows[0] ?? null;
+}
+
+export async function createNotification(input: { profileId: number; actorProfileId?: number; type: "follow" | "connection_request" | "connection_accepted" | "signal_reaction" | "signal_comment" | "signal_reply"; signalId?: number; commentId?: number }) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.insert(notifications).values({
+    profileId: input.profileId,
+    actorProfileId: input.actorProfileId ?? null,
+    type: input.type,
+    signalId: input.signalId ?? null,
+    commentId: input.commentId ?? null,
+  });
+  return Number(result[0].insertId);
+}
+
+export async function getNotificationsForProfile(userId: number, profileId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const profile = await getOwnedProfile(userId, profileId);
+  if (!profile) return null;
+  return db
+    .select({ notification: notifications, actor: profiles })
+    .from(notifications)
+    .leftJoin(profiles, eq(notifications.actorProfileId, profiles.id))
+    .where(eq(notifications.profileId, profileId))
+    .orderBy(desc(notifications.createdAt))
+    .limit(50);
+}
+
+export async function markNotificationsRead(userId: number, profileId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is unavailable");
+  const profile = await getOwnedProfile(userId, profileId);
+  if (!profile) return false;
+  await db.update(notifications).set({ readAt: new Date() }).where(and(eq(notifications.profileId, profileId), isNull(notifications.readAt)));
+  return true;
 }
