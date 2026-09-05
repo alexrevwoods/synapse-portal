@@ -137,7 +137,7 @@ function nodeById(id: NodeId) {
   return nodes.find((node) => node.id === id) ?? nodes[0];
 }
 
-export default function PortalGraph() {
+export default function PortalGraph({ embedded = false }: { embedded?: boolean }) {
   const [selectedId, setSelectedId] = useState<NodeId>("root");
   const [copied, setCopied] = useState(false);
   const selected = nodeById(selectedId);
@@ -155,8 +155,8 @@ export default function PortalGraph() {
   };
 
   return (
-    <div className="mx-auto max-w-7xl px-4 pb-10 pt-4 sm:px-6 lg:px-8 lg:pb-16">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-400">
+    <div className={embedded ? "" : "mx-auto max-w-7xl px-4 pb-10 pt-4 sm:px-6 lg:px-8 lg:pb-16"}>
+      <div className={`${embedded ? "hidden" : "flex"} mb-4 flex-wrap items-center justify-between gap-3 text-xs text-slate-400`}>
         <div className="flex items-center gap-2">
           <span className="signal-dot" aria-hidden="true" />
           <span className="font-semibold uppercase tracking-[0.14em]">Public Portal · @alex</span>

@@ -6,6 +6,8 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import Join from "./pages/Join";
+import Onboarding from "./pages/Onboarding";
+import PortalBuilder from "./pages/PortalBuilder";
 import PublicPortal from "./pages/PublicPortal";
 
 function Router() {
@@ -13,6 +15,8 @@ function Router() {
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/join" component={Join} />
+      <Route path="/onboarding" component={Onboarding} />
+      <Route path="/builder/:profileId" component={PortalBuilder} />
       <Route path="/:username" component={PublicPortal} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />

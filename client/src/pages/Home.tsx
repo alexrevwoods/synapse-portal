@@ -1,7 +1,9 @@
-import { Link } from "wouter";
+import { useEffect } from "react";
+import { Link, useLocation } from "wouter";
 import { ArrowRight, Check, Compass, GitFork, Layers3, Network, Sparkles, UsersRound } from "lucide-react";
 import HolographicCard from "@/components/HolographicCard";
 import InteractiveSynapseNetwork from "@/components/InteractiveSynapseNetwork";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 const principles = [
   {
@@ -28,6 +30,17 @@ const plans = [
 ];
 
 export default function Home() {
+  const { isAuthenticated } = useAuth();
+  const [, navigate] = useLocation();
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const nextPath = window.sessionStorage.getItem("synapse-post-login");
+    if (!nextPath) return;
+    window.sessionStorage.removeItem("synapse-post-login");
+    navigate(nextPath);
+  }, [isAuthenticated, navigate]);
+
   return (
     <main className="page-shell min-h-screen bg-[#070b14]">
       <div className="grid-noise" />
