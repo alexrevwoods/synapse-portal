@@ -24,6 +24,23 @@ export const users = mysqlTable("users", {
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
 });
 
+/** Subscription is owned by the Account; Profiles consume the account allowance. */
+export const memberships = mysqlTable(
+  "memberships",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId").notNull(),
+    plan: mysqlEnum("membershipPlan", ["core", "pulse", "nexus"]).default("nexus").notNull(),
+    status: mysqlEnum("membershipStatus", ["trialing", "active", "canceled"]).default("trialing").notNull(),
+    trialEndsAt: timestamp("trialEndsAt"),
+    currentPeriodEndsAt: timestamp("currentPeriodEndsAt"),
+    cancelAtPeriodEnd: boolean("cancelAtPeriodEnd").default(false).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => ({ userUnique: uniqueIndex("memberships_user_unique").on(table.userId) }),
+);
+
 export const profileType = mysqlEnum("profileType", ["personal", "creator", "business", "organization", "project"]);
 export const nodeType = mysqlEnum("nodeType", ["identity", "social", "web", "content", "conversion", "synapse"]);
 export const signalVisibility = mysqlEnum("signalVisibility", ["public", "followers", "connections", "subscribers", "private"]);
@@ -50,6 +67,23 @@ export const profiles = mysqlTable(
     updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   },
   (table) => ({ usernameUnique: uniqueIndex("profiles_username_unique").on(table.username), ownerIndex: index("profiles_owner_user_idx").on(table.ownerUserId) }),
+);
+
+/** Delivery is opt-in by Profile; in-app notifications remain available independently. */
+export const notificationPreferences = mysqlTable(
+  "notification_preferences",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    profileId: int("profileId").notNull(),
+    inAppEnabled: boolean("inAppEnabled").default(true).notNull(),
+    emailEnabled: boolean("emailEnabled").default(false).notNull(),
+    emailFollows: boolean("emailFollows").default(true).notNull(),
+    emailConnections: boolean("emailConnections").default(true).notNull(),
+    emailConversations: boolean("emailConversations").default(true).notNull(),
+    digestFrequency: mysqlEnum("digestFrequency", ["off", "daily", "weekly"]).default("weekly").notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => ({ profileUnique: uniqueIndex("notification_preferences_profile_unique").on(table.profileId) }),
 );
 
 export const profileMembers = mysqlTable(

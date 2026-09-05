@@ -4,8 +4,10 @@ import {
   type InsertUser,
   analyticsEvents,
   blocks,
+  memberships,
   nodeConnections,
   notifications,
+  notificationPreferences,
   profileMembers,
   profileNodes,
   profileRelationships,
@@ -132,7 +134,7 @@ export async function createOwnedNode(userId: number, input: { profileId: number
   return node[0] ?? null;
 }
 
-export async function updateOwnedNode(userId: number, input: { profileId: number; nodeId: number; title?: string; subtitle?: string; description?: string; targetUrl?: string; positionX?: number; positionY?: number; isPublic?: boolean }) {
+export async function updateOwnedNode(userId: number, input: { profileId: number; nodeId: number; title?: string; subtitle?: string; description?: string; targetUrl?: string; positionX?: number; positionY?: number; isPublic?: boolean; accentColor?: string }) {
   const db = await getDb();
   if (!db) throw new Error("Database is unavailable");
   const node = await getOwnedNode(userId, input.profileId, input.nodeId);
@@ -367,6 +369,8 @@ export async function createSignalComment(userId: number, input: { profileId: nu
 export async function createNotification(input: { profileId: number; actorProfileId?: number; type: "follow" | "connection_request" | "connection_accepted" | "signal_reaction" | "signal_comment" | "signal_reply"; signalId?: number; commentId?: number }) {
   const db = await getDb();
   if (!db) return null;
+  const preferenceRows = await db.select({ inAppEnabled: notificationPreferences.inAppEnabled }).from(notificationPreferences).where(eq(notificationPreferences.profileId, input.profileId)).limit(1);
+  if (preferenceRows[0] && !preferenceRows[0].inAppEnabled) return null;
   const result = await db.insert(notifications).values({
     profileId: input.profileId,
     actorProfileId: input.actorProfileId ?? null,
@@ -544,4 +548,46 @@ export async function getProfileAnalytics(userId: number, profileId: number) {
     activity,
     nodeOpens,
   };
+}
+
+
+export async function getAccountMembership(userId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const existing = await db.select().from(memberships).where(eq(memberships.userId, userId)).limit(1);
+  if (existing[0]) return existing[0];
+  const trialEndsAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const result = await db.insert(memberships).values({ userId, plan: "nexus", status: "trialing", trialEndsAt });
+  const rows = await db.select().from(memberships).where(eq(memberships.id, Number(result[0].insertId))).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function updateAccountMembership(userId: number, input: { plan?: "core" | "pulse" | "nexus"; cancelAtPeriodEnd?: boolean }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is unavailable");
+  await getAccountMembership(userId);
+  await db.update(memberships).set(input).where(eq(memberships.userId, userId));
+  return getAccountMembership(userId);
+}
+
+export async function getNotificationPreferences(userId: number, profileId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const profile = await getOwnedProfile(userId, profileId);
+  if (!profile) return null;
+  const existing = await db.select().from(notificationPreferences).where(eq(notificationPreferences.profileId, profileId)).limit(1);
+  if (existing[0]) return existing[0];
+  const result = await db.insert(notificationPreferences).values({ profileId });
+  const rows = await db.select().from(notificationPreferences).where(eq(notificationPreferences.id, Number(result[0].insertId))).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function updateNotificationPreferences(userId: number, profileId: number, input: { inAppEnabled?: boolean; emailEnabled?: boolean; emailFollows?: boolean; emailConnections?: boolean; emailConversations?: boolean; digestFrequency?: "off" | "daily" | "weekly" }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is unavailable");
+  const existing = await getNotificationPreferences(userId, profileId);
+  if (!existing) return null;
+  await db.update(notificationPreferences).set(input).where(eq(notificationPreferences.profileId, profileId));
+  const rows = await db.select().from(notificationPreferences).where(eq(notificationPreferences.profileId, profileId)).limit(1);
+  return rows[0] ?? null;
 }

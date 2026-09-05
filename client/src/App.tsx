@@ -4,6 +4,7 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import Account from "./pages/Account";
 import Home from "./pages/Home";
 import Insights from "./pages/Insights";
 import Join from "./pages/Join";
@@ -20,6 +21,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/account" component={Account} />
       <Route path="/join" component={Join} />
       <Route path="/onboarding" component={Onboarding} />
       <Route path="/builder/:profileId" component={PortalBuilder} />

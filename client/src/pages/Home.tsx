@@ -54,7 +54,7 @@ export default function Home() {
           <a href="#membership" className="transition hover:text-cyan-100">Membership</a>
           <Link href="/@alex" className="transition hover:text-cyan-100">Explore a Portal</Link>
         </nav>
-        <Link href="/join" className="secondary-button !rounded-full !px-4 !py-2.5 !text-xs">Join Synapse</Link>
+        {isAuthenticated ? <Link href="/account" className="secondary-button !rounded-full !px-4 !py-2.5 !text-xs">My Portals</Link> : <div className="flex items-center gap-3"><Link href="/account" className="hidden text-xs font-bold text-slate-400 transition hover:text-cyan-100 sm:block">Sign in</Link><Link href="/join" className="secondary-button !rounded-full !px-4 !py-2.5 !text-xs">Join Synapse</Link></div>}
       </header>
 
       <section className="relative z-10 mx-auto grid max-w-7xl gap-12 px-4 pb-20 pt-16 sm:px-6 lg:grid-cols-[1.03fr_.97fr] lg:items-center lg:px-8 lg:pb-28 lg:pt-24">
@@ -67,7 +67,7 @@ export default function Home() {
             Build an identity people can explore. Connect your work, projects, places, and people—then participate in a social layer built around real relationships.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Link href="/join" className="primary-button">Build your Synapse <ArrowRight size={16} /></Link>
+            <Link href={isAuthenticated ? "/account" : "/join"} className="primary-button">{isAuthenticated ? "Open My Portals" : "Build your Synapse"} <ArrowRight size={16} /></Link>
             <Link href="/@alex" className="secondary-button">Explore a live Portal <Compass size={16} /></Link>
           </div>
           <div className="mt-9 flex flex-wrap gap-x-6 gap-y-3 text-xs font-semibold text-slate-500">

@@ -10,6 +10,7 @@ type LiveNode = {
   subtitle: string | null;
   description: string | null;
   targetUrl: string | null;
+  accentColor?: string | null;
   positionX: number;
   positionY: number;
 };
@@ -104,7 +105,7 @@ export default function LivePortalGraph({ profile, nodes, connections, onNodeOpe
               aria-pressed={selectedId === node.id}
               aria-label={`Open ${node.title}`}
               onClick={() => { setSelectedId(node.id); onNodeOpen?.(node.id); }}
-              style={{ left: `${node.positionX}%`, top: `${node.positionY}%` } as CSSProperties}
+              style={{ left: `${node.positionX}%`, top: `${node.positionY}%`, borderColor: node.accentColor || undefined, boxShadow: node.accentColor ? `0 0 24px ${node.accentColor}2b` : undefined } as CSSProperties}
               className={`portal-node ${selectedId === node.id ? "is-active" : ""}`}
             >
               <span className="portal-node__icon">{node.type === "content" && node.title.toLowerCase().includes("music") ? <Music2 size={16} strokeWidth={1.9} /> : <Icon size={16} strokeWidth={1.9} />}</span>

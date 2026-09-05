@@ -29,6 +29,13 @@
       "when": 1788582527041,
       "tag": "0003_cultured_shaman",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1788582998545,
+      "tag": "0004_simple_valkyrie",
+      "breakpoints": true
     }
   ]
 }

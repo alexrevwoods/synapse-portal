@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   createOwnedNode,
   createProfileForUser,
+  getAccountMembership,
   getBuilderProfile,
   getProfilesForUser,
   setProfilePublished,
@@ -12,6 +13,7 @@ import { protectedProcedure, router } from "./_core/trpc";
 
 const profileTypes = ["personal", "creator", "business", "organization", "project"] as const;
 const nodeTypes = ["identity", "social", "web", "content", "conversion", "synapse"] as const;
+const portalThemes = ["atlas", "aurora", "nocturne", "ember"] as const;
 
 export function normalizeUsername(value: string) {
   return value.trim().replace(/^@/, "").toLowerCase();
@@ -36,6 +38,11 @@ export const profileRouter = router({
 
   create: protectedProcedure.input(createProfileInput).mutation(async ({ ctx, input }) => {
     try {
+      const [membership, existingProfiles] = await Promise.all([getAccountMembership(ctx.user.id), getProfilesForUser(ctx.user.id)]);
+      const profileAllowance = membership?.plan === "core" ? 1 : membership?.plan === "pulse" ? 3 : 5;
+      if (existingProfiles.length >= profileAllowance) {
+        throw new TRPCError({ code: "FORBIDDEN", message: `Your ${membership?.plan || "current"} membership includes up to ${profileAllowance} ${profileAllowance === 1 ? "Profile" : "Profiles"}.` });
+      }
       const profile = await createProfileForUser(ctx.user.id, input);
       if (!profile) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Profile could not be created" });
       return profile;
@@ -53,6 +60,7 @@ export const profileRouter = router({
         bio: z.string().trim().max(420).optional(),
         location: z.string().trim().max(160).optional(),
         websiteUrl: z.string().url().max(2048).optional().or(z.literal("")),
+        portalTheme: z.enum(portalThemes).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {

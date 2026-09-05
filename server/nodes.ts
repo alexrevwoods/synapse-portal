@@ -12,6 +12,7 @@ const nodeUpdate = z.object({
   targetUrl: z.string().url().max(2048).optional().or(z.literal("")),
   positionX: z.number().int().min(5).max(95).optional(),
   positionY: z.number().int().min(8).max(92).optional(),
+  accentColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
   isPublic: z.boolean().optional(),
 });
 
