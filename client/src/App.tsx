@@ -3,8 +3,10 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
+import PlatformSkinInitializer from "./components/PlatformSkinInitializer";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Account from "./pages/Account";
+import BrandStudio from "./pages/BrandStudio";
 import Home from "./pages/Home";
 import Insights from "./pages/Insights";
 import Join from "./pages/Join";
@@ -15,6 +17,7 @@ import Onboarding from "./pages/Onboarding";
 import PortalBuilder from "./pages/PortalBuilder";
 import PublicPortal from "./pages/PublicPortal";
 import Signals from "./pages/Signals";
+import SkinStudio from "./pages/SkinStudio";
 import Timeline from "./pages/Timeline";
 
 function Router() {
@@ -22,6 +25,8 @@ function Router() {
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/account" component={Account} />
+      <Route path="/skins" component={SkinStudio} />
+      <Route path="/brand/:profileId" component={BrandStudio} />
       <Route path="/join" component={Join} />
       <Route path="/onboarding" component={Onboarding} />
       <Route path="/builder/:profileId" component={PortalBuilder} />
@@ -43,8 +48,10 @@ function App() {
     <ErrorBoundary>
       <ThemeProvider defaultTheme="dark">
         <TooltipProvider>
-          <Toaster theme="dark" />
-          <Router />
+          <PlatformSkinInitializer>
+            <Toaster theme="dark" />
+            <Router />
+          </PlatformSkinInitializer>
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>

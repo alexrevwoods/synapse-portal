@@ -9,11 +9,11 @@ import {
   setProfilePublished,
   updateOwnedProfile,
 } from "./db";
+import { canUseSkin, isKnownSkin, normalizeSkinId } from "../shared/skins";
 import { protectedProcedure, router } from "./_core/trpc";
 
 const profileTypes = ["personal", "creator", "business", "organization", "project"] as const;
 const nodeTypes = ["identity", "social", "web", "content", "conversion", "synapse"] as const;
-const portalThemes = ["atlas", "aurora", "nocturne", "ember"] as const;
 
 export function normalizeUsername(value: string) {
   return value.trim().replace(/^@/, "").toLowerCase();
@@ -60,12 +60,20 @@ export const profileRouter = router({
         bio: z.string().trim().max(420).optional(),
         location: z.string().trim().max(160).optional(),
         websiteUrl: z.string().url().max(2048).optional().or(z.literal("")),
-        portalTheme: z.enum(portalThemes).optional(),
+        portalTheme: z.string().trim().min(2).max(48).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
       const { profileId, ...updates } = input;
-      const profile = await updateOwnedProfile(ctx.user.id, profileId, { ...updates, websiteUrl: updates.websiteUrl || undefined });
+      const membership = await getAccountMembership(ctx.user.id);
+      const requestedTheme = normalizeSkinId(updates.portalTheme);
+      if (updates.portalTheme && !isKnownSkin(requestedTheme)) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "That Portal Skin does not exist" });
+      }
+      if (updates.portalTheme && (!membership || !canUseSkin(membership.plan, requestedTheme))) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "That Portal Skin is not available on the current membership" });
+      }
+      const profile = await updateOwnedProfile(ctx.user.id, profileId, { ...updates, portalTheme: updates.portalTheme ? requestedTheme : undefined, websiteUrl: updates.websiteUrl || undefined });
       if (!profile) throw new TRPCError({ code: "NOT_FOUND", message: "Profile not found" });
       return profile;
     }),

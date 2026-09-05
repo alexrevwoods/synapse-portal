@@ -1,9 +1,11 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { ArrowRight, Check, Compass, GitFork, Layers3, Network, Sparkles, UsersRound } from "lucide-react";
 import HolographicCard from "@/components/HolographicCard";
 import InteractiveSynapseNetwork from "@/components/InteractiveSynapseNetwork";
+import HomeSkinPicker from "@/components/HomeSkinPicker";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { getGuestSkin } from "@/lib/skins";
 
 const principles = [
   {
@@ -32,6 +34,7 @@ const plans = [
 export default function Home() {
   const { isAuthenticated } = useAuth();
   const [, navigate] = useLocation();
+  const [guestSkin, setGuestSkin] = useState(() => getGuestSkin());
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -75,6 +78,7 @@ export default function Home() {
             <span className="flex items-center gap-2"><Check size={14} className="text-cyan-200" /> 7-day Nexus trial</span>
             <span className="flex items-center gap-2"><Check size={14} className="text-cyan-200" /> No ads. No attention traps.</span>
           </div>
+          {isAuthenticated ? <Link href="/skins" className="mt-8 inline-flex items-center gap-2 text-xs font-bold text-cyan-100 transition hover:text-cyan-50">Shape your full platform Skin <ArrowRight size={14} /></Link> : <HomeSkinPicker activeSkin={guestSkin} onChange={setGuestSkin} />}
         </div>
 
         <InteractiveSynapseNetwork className="min-h-[390px] overflow-visible sm:min-h-[455px]">

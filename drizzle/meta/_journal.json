@@ -36,6 +36,13 @@
       "when": 1788582998545,
       "tag": "0004_simple_valkyrie",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1788583887058,
+      "tag": "0005_typical_white_queen",
+      "breakpoints": true
     }
   ]
 }

@@ -4,6 +4,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
 import { analyticsRouter } from "./analytics";
+import { brandingRouter } from "./branding";
 import { nodesRouter } from "./nodes";
 import { portalRouter } from "./portal";
 import { profileRouter } from "./profile";
@@ -31,6 +32,7 @@ export const appRouter = router({
   social: socialRouter,
   safety: safetyRouter,
   analytics: analyticsRouter,
+  branding: brandingRouter,
   moderation: moderationRouter,
 });
 

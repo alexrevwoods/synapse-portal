@@ -18,6 +18,7 @@ import {
   signals,
   users,
 } from "../drizzle/schema";
+import { canUseSkin, getSkin, isKnownSkin, normalizeSkinId, type MembershipPlan } from "../shared/skins";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -87,7 +88,7 @@ export async function createProfileForUser(userId: number, input: { username: st
   return getOwnedProfile(userId, profileId);
 }
 
-export async function updateOwnedProfile(userId: number, profileId: number, input: { displayName?: string; bio?: string; location?: string; websiteUrl?: string; portalTheme?: string }) {
+export async function updateOwnedProfile(userId: number, profileId: number, input: { displayName?: string; bio?: string; location?: string; websiteUrl?: string; portalTheme?: string; avatarUrl?: string; brandLogoUrl?: string; brandPrimaryColor?: string; brandSecondaryColor?: string; customDomain?: string }) {
   const db = await getDb();
   if (!db) throw new Error("Database is unavailable");
   await db.update(profiles).set(input).where(and(eq(profiles.id, profileId), eq(profiles.ownerUserId, userId)));
@@ -233,13 +234,17 @@ export async function getPublicPortalByUsername(username: string) {
   if (!db) return null;
   const profile = await getPublishedProfileByUsername(username);
   if (!profile) return null;
+  const membershipRows = await db.select().from(memberships).where(eq(memberships.userId, profile.ownerUserId)).limit(1);
+  const plan = (membershipRows[0]?.plan || "core") as MembershipPlan;
+  const selectedSkin = normalizeSkinId(profile.portalTheme);
+  const resolvedSkin = canUseSkin(plan, selectedSkin) ? selectedSkin : "signal";
   const [nodes, connections, recentSignals] = await Promise.all([
     db.select().from(profileNodes).where(and(eq(profileNodes.profileId, profile.id), eq(profileNodes.isPublic, true))).orderBy(asc(profileNodes.sortOrder)),
     db.select().from(nodeConnections).where(eq(nodeConnections.profileId, profile.id)),
     db.select().from(signals).where(and(eq(signals.profileId, profile.id), eq(signals.visibility, "public"))).orderBy(desc(signals.publishedAt)).limit(20),
   ]);
   const publicNodeIds = new Set(nodes.map((node) => node.id));
-  return { profile, nodes, connections: connections.filter((connection) => publicNodeIds.has(connection.fromNodeId) && publicNodeIds.has(connection.toNodeId)), recentSignals };
+  return { profile: { ...profile, portalTheme: resolvedSkin }, nodes, connections: connections.filter((connection) => publicNodeIds.has(connection.fromNodeId) && publicNodeIds.has(connection.toNodeId)), recentSignals };
 }
 
 
@@ -562,10 +567,18 @@ export async function getAccountMembership(userId: number) {
   return rows[0] ?? null;
 }
 
-export async function updateAccountMembership(userId: number, input: { plan?: "core" | "pulse" | "nexus"; cancelAtPeriodEnd?: boolean }) {
+export async function updateAccountMembership(userId: number, input: { plan?: "core" | "pulse" | "nexus"; cancelAtPeriodEnd?: boolean; platformSkin?: string; skinPrimary?: string; skinSecondary?: string }) {
   const db = await getDb();
   if (!db) throw new Error("Database is unavailable");
-  await getAccountMembership(userId);
+  const membership = await getAccountMembership(userId);
+  if (!membership) return null;
+  const activePlan = (input.plan || membership.plan) as MembershipPlan;
+  const profileRows = input.plan ? await db.select({ id: profiles.id }).from(profiles).where(eq(profiles.ownerUserId, userId)) : [];
+  const profileAllowance = activePlan === "core" ? 1 : activePlan === "pulse" ? 3 : 5;
+  if (input.plan && profileRows.length > profileAllowance) throw new Error(`Move or remove Profiles before selecting ${activePlan}`);
+  if (input.platformSkin && !isKnownSkin(input.platformSkin)) throw new Error("That Skin does not exist");
+  if (input.platformSkin && !canUseSkin(activePlan, input.platformSkin)) throw new Error("That Skin is not available on the selected membership");
+  if (input.platformSkin === "brand" && activePlan !== "nexus") throw new Error("Brand Studio is available with Nexus");
   await db.update(memberships).set(input).where(eq(memberships.userId, userId));
   return getAccountMembership(userId);
 }
