@@ -116,3 +116,10 @@ The release uses **WhoAreWe** spelling exactly, presents **Where Identity Meets 
 - [x] Bind desktop mouse-wheel zoom natively so the map responds instead of scrolling the page while hovered.
 - [x] Support a direct `?network=full` Portal URL for a shareable full-network opening state.
 - [x] Validate the mobile layout, pointer gestures, TypeScript, automated tests, and production build.
+
+## Desktop Full-Network Map
+
+- [x] Add a clear **Show full network** action beneath the desktop embedded Portal map.
+- [x] Extend full-screen map mode to desktop with an edge-to-edge canvas and persistent **Minimize** action.
+- [x] Preserve all map navigation tools, Portal controls, minimap, zooming, and drag panning in desktop full-network mode.
+- [x] Verify the desktop full-map view, TypeScript, automated tests, and production build.
