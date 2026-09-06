@@ -182,7 +182,7 @@ export async function upsertOwnedNodeConnection(userId: number, input: { profile
   return rows[0] ?? null;
 }
 
-export async function createOwnedSignal(userId: number, input: { profileId: number; type: "text" | "link" | "image" | "gallery" | "node" | "article" | "video" | "audio"; body: string; visibility: "public" | "followers" | "connections" | "subscribers" | "private" }) {
+export async function createOwnedSignal(userId: number, input: { profileId: number; type: "text" | "link" | "image" | "gallery" | "node" | "article" | "video" | "audio"; body: string; visibility: "public" | "followers" | "connections" | "subscribers" | "private"; isPinned?: boolean; reminderAt?: Date }) {
   const db = await getDb();
   if (!db) throw new Error("Database is unavailable");
   const profile = await getOwnedProfile(userId, input.profileId);
@@ -197,7 +197,22 @@ export async function getOwnedSignals(userId: number, profileId: number) {
   if (!db) return [];
   const profile = await getOwnedProfile(userId, profileId);
   if (!profile) return null;
-  return db.select().from(signals).where(eq(signals.profileId, profileId)).orderBy(desc(signals.publishedAt));
+  return db.select().from(signals).where(eq(signals.profileId, profileId)).orderBy(desc(signals.isPinned), desc(signals.publishedAt));
+}
+
+export async function updateOwnedPrivateNote(userId: number, input: { profileId: number; signalId: number; isPinned?: boolean; reminderAt?: Date | null }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is unavailable");
+  const profile = await getOwnedProfile(userId, input.profileId);
+  if (!profile) return null;
+  const rows = await db.select().from(signals).where(and(eq(signals.id, input.signalId), eq(signals.profileId, input.profileId), eq(signals.visibility, "private"))).limit(1);
+  if (!rows[0]) return null;
+  const updates: { isPinned?: boolean; reminderAt?: Date | null } = {};
+  if (input.isPinned !== undefined) updates.isPinned = input.isPinned;
+  if (input.reminderAt !== undefined) updates.reminderAt = input.reminderAt;
+  await db.update(signals).set(updates).where(eq(signals.id, input.signalId));
+  const updated = await db.select().from(signals).where(eq(signals.id, input.signalId)).limit(1);
+  return updated[0] ?? null;
 }
 
 export async function getPublishedProfileByUsername(username: string) {

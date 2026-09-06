@@ -152,6 +152,8 @@ export const signals = mysqlTable(
     body: text("body").notNull(),
     visibility: signalVisibility.default("public").notNull(),
     attachedNodeId: int("attachedNodeId"),
+    isPinned: boolean("isPinned").default(false).notNull(),
+    reminderAt: timestamp("reminderAt"),
     publishedAt: timestamp("publishedAt"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
