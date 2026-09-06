@@ -146,6 +146,19 @@ export async function updateOwnedNode(userId: number, input: { profileId: number
   return rows[0] ?? null;
 }
 
+export async function arrangeOwnedNodes(userId: number, input: { profileId: number; positions: Array<{ nodeId: number; positionX: number; positionY: number }> }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is unavailable");
+  const profile = await getOwnedProfile(userId, input.profileId);
+  if (!profile) return null;
+  const ids = Array.from(new Set(input.positions.map((position) => position.nodeId)));
+  if (ids.length !== input.positions.length) return null;
+  const owned = await db.select({ id: profileNodes.id }).from(profileNodes).where(and(eq(profileNodes.profileId, input.profileId), inArray(profileNodes.id, ids)));
+  if (owned.length !== ids.length) return null;
+  await Promise.all(input.positions.map((position) => db.update(profileNodes).set({ positionX: position.positionX, positionY: position.positionY }).where(and(eq(profileNodes.id, position.nodeId), eq(profileNodes.profileId, input.profileId)))));
+  return input.positions;
+}
+
 export async function deleteOwnedNode(userId: number, profileId: number, nodeId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database is unavailable");
