@@ -107,3 +107,12 @@ The release uses **WhoAreWe** spelling exactly, presents **Where Identity Meets 
 - [x] Replace the generic **My Space** header action with **Edit My Portals**.
 - [x] Add a prominent **View my Portal** action for the currently selected viewing identity.
 - [x] Validate the responsive Timeline header and production build.
+
+## Portal Map Gesture and Control Refinements
+
+- [x] Move full-network relationship filters into a non-overlapping bottom-left control rail.
+- [x] Enlarge and label the bottom-right Portal minimap for reachable region selection.
+- [x] Enable direct one-finger panning in the mobile full-network view while preserving two-finger pinch zoom.
+- [x] Bind desktop mouse-wheel zoom natively so the map responds instead of scrolling the page while hovered.
+- [x] Support a direct `?network=full` Portal URL for a shareable full-network opening state.
+- [x] Validate the mobile layout, pointer gestures, TypeScript, automated tests, and production build.

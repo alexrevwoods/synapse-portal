@@ -459,14 +459,20 @@ body {
   .portal-map-shell.is-fullscreen .portal-stage--fullscreen { min-height: 100dvh; height: 100dvh; border: 0; border-radius: 0; }
   .portal-map-shell.is-fullscreen .portal-map-kicker, .portal-map-shell.is-fullscreen .portal-map-breadcrumb { display: none; }
   .portal-map-shell.is-fullscreen .map-control-cluster { top: 4.35rem; right: .6rem; }
-  .portal-map-shell.is-fullscreen .portal-map-filter { top: 4.35rem; left: .6rem; max-width: calc(100% - 10.7rem); }
+  .portal-map-shell.is-fullscreen .portal-map-filter { top: auto; right: auto; bottom: .8rem; left: .65rem; max-width: calc(100% - 8.6rem); padding: .38rem .42rem; box-shadow: 0 10px 24px rgba(0,0,0,.28); }
+  .portal-map-shell.is-fullscreen .portal-map-filter button { padding: .36rem .44rem; font-size: .54rem; }
   .portal-map-shell.is-fullscreen .portal-switcher-trigger { top: 7rem; right: .6rem; }
-  .portal-map-shell.is-fullscreen .portal-map-minimap { right: .65rem; bottom: .75rem; }
-  .portal-map-shell.is-fullscreen .portal-map-gesture-hint { right: 3.85rem; bottom: .72rem; left: .65rem; }
+  .portal-map-shell.is-fullscreen .portal-map-minimap { right: .65rem; bottom: 3.8rem; gap: .42rem; border-color: rgba(0,216,255,.32); border-radius: .9rem; padding: .52rem; box-shadow: 0 10px 30px rgba(0,0,0,.32), 0 0 20px rgba(0,216,255,.08); }
+  .portal-map-shell.is-fullscreen .portal-map-minimap::before { content: "Map"; position: absolute; top: -.95rem; right: .15rem; color: rgba(163,244,255,.76); font-size: .5rem; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
+  .portal-map-shell.is-fullscreen .portal-map-minimap button { width: 2.3rem; height: 2.3rem; border-radius: .66rem; font-size: .62rem; }
+  .portal-map-shell.is-fullscreen .portal-map-minimap button i { width: .42rem; height: .42rem; right: -.18rem; bottom: -.18rem; }
+  .portal-map-shell.is-fullscreen .portal-map-gesture-hint { right: .65rem; bottom: 7.55rem; left: .65rem; }
   .portal-full-network-bar { position: absolute; z-index: 30; top: .6rem; right: .6rem; left: .6rem; display: flex; align-items: center; justify-content: space-between; border: 1px solid rgba(255,255,255,.10); border-radius: .85rem; background: rgba(7,12,24,.9); padding: .5rem .55rem .5rem .75rem; box-shadow: 0 10px 28px rgba(0,0,0,.24); backdrop-filter: blur(14px); }
   .portal-full-network-bar div { min-width: 0; }
   .portal-full-network-bar span, .portal-full-network-bar strong { display: block; }
   .portal-full-network-bar span { color: #94b4de; font-size: .48rem; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
   .portal-full-network-bar strong { overflow: hidden; margin-top: .1rem; color: #fff; font-size: .72rem; font-weight: 900; text-overflow: ellipsis; white-space: nowrap; }
   .portal-full-network-bar button { display: flex; align-items: center; gap: .35rem; border-radius: .58rem; background: rgba(255,255,255,.08); padding: .45rem .52rem; color: #eaf4ff; font-size: .56rem; font-weight: 800; }
+  .portal-map-shell.is-fullscreen .portal-stage { touch-action: none; cursor: grab; }
+  .portal-map-shell.is-fullscreen .portal-stage:active { cursor: grabbing; }
 }
