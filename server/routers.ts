@@ -5,8 +5,10 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
 import { analyticsRouter } from "./analytics";
 import { brandingRouter } from "./branding";
+import { badgesRouter } from "./badges";
 import { nodesRouter } from "./nodes";
 import { portalRouter } from "./portal";
+import { platformRouter } from "./platform";
 import { profileRouter } from "./profile";
 import { relationshipsRouter } from "./relationships";
 import { moderationRouter, safetyRouter } from "./safety";
@@ -26,6 +28,7 @@ export const appRouter = router({
   }),
   profile: profileRouter,
   portal: portalRouter,
+  platform: platformRouter,
   nodes: nodesRouter,
   signals: signalsRouter,
   relationships: relationshipsRouter,
@@ -33,6 +36,7 @@ export const appRouter = router({
   safety: safetyRouter,
   analytics: analyticsRouter,
   branding: brandingRouter,
+  badges: badgesRouter,
   moderation: moderationRouter,
 });
 

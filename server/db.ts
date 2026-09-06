@@ -8,17 +8,21 @@ import {
   nodeConnections,
   notifications,
   notificationPreferences,
+  profileBadges,
   profileMembers,
   profileNodes,
   profileRelationships,
   profiles,
   reports,
   signalComments,
+  signalMedia,
   signalReactions,
   signals,
+  platformSettings,
   users,
 } from "../drizzle/schema";
 import { canUseSkin, getSkin, isKnownSkin, normalizeSkinId, type MembershipPlan } from "../shared/skins";
+import { catalogBadge, extraBadgeSlots, verificationBadge } from "../shared/badges";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -102,17 +106,61 @@ export async function setProfilePublished(userId: number, profileId: number, isP
   return getOwnedProfile(userId, profileId);
 }
 
+export async function getProfileBadgeState(userId: number, profileId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const profile = await getOwnedProfile(userId, profileId);
+  if (!profile) return null;
+  const [membershipRows, equipped] = await Promise.all([
+    db.select().from(memberships).where(eq(memberships.userId, userId)).limit(1),
+    db.select().from(profileBadges).where(and(eq(profileBadges.profileId, profileId), eq(profileBadges.isEquipped, true))),
+  ]);
+  const membership = membershipRows[0] ?? null;
+  const slots = extraBadgeSlots(membership);
+  return { verification: verificationBadge(membership), slots, equipped: equipped.map(({ badgeKey }) => badgeKey).filter((key) => catalogBadge(key)).slice(0, slots) };
+}
+
+export async function saveProfileBadges(userId: number, profileId: number, badgeKeys: string[]) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is unavailable");
+  const profile = await getOwnedProfile(userId, profileId);
+  if (!profile) return null;
+  const membershipRows = await db.select().from(memberships).where(eq(memberships.userId, userId)).limit(1);
+  const slots = extraBadgeSlots(membershipRows[0]);
+  const uniqueKeys = Array.from(new Set(badgeKeys));
+  if (uniqueKeys.length > slots || uniqueKeys.some((key) => !catalogBadge(key))) return null;
+  await db.delete(profileBadges).where(eq(profileBadges.profileId, profileId));
+  if (uniqueKeys.length) await db.insert(profileBadges).values(uniqueKeys.map((badgeKey) => {
+    const badge = catalogBadge(badgeKey)!;
+    return { profileId, badgeKey, label: badge.label, tone: badge.tone, isEquipped: true };
+  }));
+  return getProfileBadgeState(userId, profileId);
+}
+
+export async function getPublicProfileBadges(profile: typeof profiles.$inferSelect) {
+  const db = await getDb();
+  if (!db) return [];
+  const [membershipRows, equipped] = await Promise.all([
+    db.select().from(memberships).where(eq(memberships.userId, profile.ownerUserId)).limit(1),
+    db.select().from(profileBadges).where(and(eq(profileBadges.profileId, profile.id), eq(profileBadges.isEquipped, true))),
+  ]);
+  const membership = membershipRows[0] ?? null;
+  const custom = equipped.map(({ badgeKey }) => catalogBadge(badgeKey)).filter((badge): badge is NonNullable<typeof badge> => Boolean(badge)).slice(0, extraBadgeSlots(membership));
+  return [verificationBadge(membership), ...custom].filter((badge): badge is NonNullable<typeof badge> => Boolean(badge));
+}
+
 export async function getBuilderProfile(userId: number, profileId: number) {
   const db = await getDb();
   if (!db) return null;
   const profile = await getOwnedProfile(userId, profileId);
   if (!profile) return null;
-  const [nodes, connections, recentSignals] = await Promise.all([
+  const [nodes, connections, recentSignals, badgeState] = await Promise.all([
     db.select().from(profileNodes).where(eq(profileNodes.profileId, profileId)).orderBy(asc(profileNodes.sortOrder)),
     db.select().from(nodeConnections).where(eq(nodeConnections.profileId, profileId)),
     db.select().from(signals).where(eq(signals.profileId, profileId)).orderBy(desc(signals.publishedAt)).limit(10),
+    getProfileBadgeState(userId, profileId),
   ]);
-  return { profile, nodes, connections, recentSignals };
+  return { profile, nodes, connections, recentSignals, badgeState };
 }
 
 export async function getOwnedNode(userId: number, profileId: number, nodeId: number) {
@@ -182,14 +230,30 @@ export async function upsertOwnedNodeConnection(userId: number, input: { profile
   return rows[0] ?? null;
 }
 
-export async function createOwnedSignal(userId: number, input: { profileId: number; type: "text" | "link" | "image" | "gallery" | "node" | "article" | "video" | "audio"; body: string; visibility: "public" | "followers" | "connections" | "subscribers" | "private"; isPinned?: boolean; reminderAt?: Date; imageUrl?: string; imageAspect?: "wide" | "square" }) {
+type MediaInput = { storageUrl: string; altText?: string; focalX?: number; focalY?: number };
+
+async function getMediaForSignals(db: NonNullable<Awaited<ReturnType<typeof getDb>>>, signalIds: number[]) {
+  if (!signalIds.length) return new Map<number, Array<typeof signalMedia.$inferSelect>>();
+  const rows = await db.select().from(signalMedia).where(inArray(signalMedia.signalId, signalIds)).orderBy(asc(signalMedia.sortOrder));
+  return rows.reduce((map, media) => {
+    const current = map.get(media.signalId) ?? [];
+    current.push(media);
+    map.set(media.signalId, current);
+    return map;
+  }, new Map<number, Array<typeof signalMedia.$inferSelect>>());
+}
+
+export async function createOwnedSignal(userId: number, input: { profileId: number; type: "text" | "link" | "image" | "gallery" | "node" | "article" | "video" | "audio"; body: string; visibility: "public" | "followers" | "connections" | "subscribers" | "private"; isPinned?: boolean; reminderAt?: Date; imageAspect?: "wide" | "square"; media?: MediaInput[] }) {
   const db = await getDb();
   if (!db) throw new Error("Database is unavailable");
   const profile = await getOwnedProfile(userId, input.profileId);
   if (!profile) return null;
-  const result = await db.insert(signals).values({ ...input, publishedAt: new Date() });
-  const rows = await db.select().from(signals).where(eq(signals.id, Number(result[0].insertId))).limit(1);
-  return rows[0] ?? null;
+  const { media, ...signalInput } = input;
+  const result = await db.insert(signals).values({ ...signalInput, imageUrl: media?.[0]?.storageUrl ?? null, publishedAt: new Date() });
+  const signalId = Number(result[0].insertId);
+  if (media?.length) await db.insert(signalMedia).values(media.map((item, sortOrder) => ({ signalId, storageUrl: item.storageUrl, altText: item.altText || null, focalX: item.focalX ?? 50, focalY: item.focalY ?? 50, sortOrder })));
+  const rows = await db.select().from(signals).where(eq(signals.id, signalId)).limit(1);
+  return rows[0] ? { ...rows[0], media: media ?? [] } : null;
 }
 
 export async function getOwnedSignals(userId: number, profileId: number) {
@@ -197,7 +261,36 @@ export async function getOwnedSignals(userId: number, profileId: number) {
   if (!db) return [];
   const profile = await getOwnedProfile(userId, profileId);
   if (!profile) return null;
-  return db.select().from(signals).where(eq(signals.profileId, profileId)).orderBy(desc(signals.isPinned), desc(signals.publishedAt));
+  const ownedSignals = await db.select().from(signals).where(eq(signals.profileId, profileId)).orderBy(desc(signals.isPinned), desc(signals.publishedAt));
+  const media = await getMediaForSignals(db, ownedSignals.map((signal) => signal.id));
+  return ownedSignals.map((signal) => ({ ...signal, media: media.get(signal.id) ?? [] }));
+}
+
+export async function getActiveDemoProfile() {
+  const db = await getDb();
+  if (!db) return null;
+  const settings = await db.select().from(platformSettings).where(eq(platformSettings.id, "global")).limit(1);
+  if (settings[0]?.activeDemoProfileId) {
+    const chosen = await db.select().from(profiles).where(and(eq(profiles.id, settings[0].activeDemoProfileId), eq(profiles.isPublished, true))).limit(1);
+    if (chosen[0]) return chosen[0];
+  }
+  const fallback = await db.select().from(profiles).where(and(eq(profiles.username, "mediarevolution"), eq(profiles.isPublished, true))).limit(1);
+  return fallback[0] ?? null;
+}
+
+export async function getPublishedProfilesForAdmin() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(profiles).where(eq(profiles.isPublished, true)).orderBy(asc(profiles.displayName));
+}
+
+export async function setActiveDemoProfile(profileId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is unavailable");
+  const profile = await db.select().from(profiles).where(and(eq(profiles.id, profileId), eq(profiles.isPublished, true))).limit(1);
+  if (!profile[0]) return null;
+  await db.insert(platformSettings).values({ id: "global", activeDemoProfileId: profileId }).onDuplicateKeyUpdate({ set: { activeDemoProfileId: profileId, updatedAt: new Date() } });
+  return profile[0];
 }
 
 export async function updateOwnedPrivateNote(userId: number, input: { profileId: number; signalId: number; isPinned?: boolean; reminderAt?: Date | null }) {
@@ -266,13 +359,14 @@ export async function getPublicPortalByUsername(username: string) {
   const plan = (membershipRows[0]?.plan || "core") as MembershipPlan;
   const selectedSkin = normalizeSkinId(profile.portalTheme);
   const resolvedSkin = canUseSkin(plan, selectedSkin) ? selectedSkin : "signal";
-  const [nodes, connections, recentSignals] = await Promise.all([
+  const [nodes, connections, recentSignals, badges] = await Promise.all([
     db.select().from(profileNodes).where(and(eq(profileNodes.profileId, profile.id), eq(profileNodes.isPublic, true))).orderBy(asc(profileNodes.sortOrder)),
     db.select().from(nodeConnections).where(eq(nodeConnections.profileId, profile.id)),
     db.select().from(signals).where(and(eq(signals.profileId, profile.id), eq(signals.visibility, "public"))).orderBy(desc(signals.publishedAt)).limit(20),
+    getPublicProfileBadges(profile),
   ]);
   const publicNodeIds = new Set(nodes.map((node) => node.id));
-  return { profile: { ...profile, portalTheme: resolvedSkin }, nodes, connections: connections.filter((connection) => publicNodeIds.has(connection.fromNodeId) && publicNodeIds.has(connection.toNodeId)), recentSignals };
+  return { profile: { ...profile, portalTheme: resolvedSkin }, nodes, connections: connections.filter((connection) => publicNodeIds.has(connection.fromNodeId) && publicNodeIds.has(connection.toNodeId)), recentSignals, badges };
 }
 
 
@@ -285,7 +379,7 @@ async function enrichSignals(rows: FeedRow[], currentProfileId?: number) {
   const db = await getDb();
   if (!db || rows.length === 0) return rows.map((row) => ({ ...row, reactionCount: 0, reactedByCurrentProfile: false, comments: [] }));
   const signalIds = rows.map((row) => row.signal.id);
-  const [reactionRows, commentRows] = await Promise.all([
+  const [reactionRows, commentRows, media] = await Promise.all([
     db.select().from(signalReactions).where(inArray(signalReactions.signalId, signalIds)),
     db
       .select({ comment: signalComments, profile: profiles })
@@ -293,12 +387,14 @@ async function enrichSignals(rows: FeedRow[], currentProfileId?: number) {
       .innerJoin(profiles, eq(signalComments.profileId, profiles.id))
       .where(inArray(signalComments.signalId, signalIds))
       .orderBy(asc(signalComments.createdAt)),
+    getMediaForSignals(db, signalIds),
   ]);
   return rows.map((row) => ({
     ...row,
     reactionCount: reactionRows.filter((reaction) => reaction.signalId === row.signal.id).length,
     reactedByCurrentProfile: currentProfileId ? reactionRows.some((reaction) => reaction.signalId === row.signal.id && reaction.profileId === currentProfileId) : false,
     comments: commentRows.filter((entry) => entry.comment.signalId === row.signal.id),
+    media: media.get(row.signal.id) ?? [],
   }));
 }
 

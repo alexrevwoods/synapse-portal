@@ -76,6 +76,20 @@ export const profiles = mysqlTable(
   (table) => ({ usernameUnique: uniqueIndex("profiles_username_unique").on(table.username), ownerIndex: index("profiles_owner_user_idx").on(table.ownerUserId) }),
 );
 
+export const profileBadges = mysqlTable(
+  "profile_badges",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    profileId: int("profileId").notNull(),
+    badgeKey: varchar("badgeKey", { length: 48 }).notNull(),
+    label: varchar("label", { length: 72 }).notNull(),
+    tone: mysqlEnum("profileBadgeTone", ["cyan", "violet", "lime", "amber", "rose"]).default("cyan").notNull(),
+    isEquipped: boolean("isEquipped").default(true).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => ({ profileIndex: index("profile_badges_profile_idx").on(table.profileId), profileBadgeUnique: uniqueIndex("profile_badges_profile_badge_unique").on(table.profileId, table.badgeKey) }),
+);
+
 /** Delivery is opt-in by Profile; in-app notifications remain available independently. */
 export const notificationPreferences = mysqlTable(
   "notification_preferences",
@@ -162,6 +176,27 @@ export const signals = mysqlTable(
   },
   (table) => ({ profilePublishedIndex: index("signals_profile_published_idx").on(table.profileId, table.publishedAt) }),
 );
+
+export const signalMedia = mysqlTable(
+  "signal_media",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    signalId: int("signalId").notNull(),
+    storageUrl: text("storageUrl").notNull(),
+    altText: varchar("altText", { length: 280 }),
+    focalX: int("focalX").default(50).notNull(),
+    focalY: int("focalY").default(50).notNull(),
+    sortOrder: int("sortOrder").default(0).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => ({ signalIndex: index("signal_media_signal_idx").on(table.signalId, table.sortOrder) }),
+);
+
+export const platformSettings = mysqlTable("platform_settings", {
+  id: varchar("id", { length: 32 }).primaryKey(),
+  activeDemoProfileId: int("activeDemoProfileId"),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
 
 export const signalReactions = mysqlTable(
   "signal_reactions",

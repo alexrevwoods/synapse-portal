@@ -7,6 +7,7 @@ import HomeSkinPicker from "@/components/HomeSkinPicker";
 import SynapseMark from "@/components/SynapseMark";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getGuestSkin } from "@/lib/skins";
+import { trpc } from "@/lib/trpc";
 
 const principles = [
   {
@@ -36,6 +37,10 @@ export default function Home() {
   const { isAuthenticated } = useAuth();
   const [, navigate] = useLocation();
   const [guestSkin, setGuestSkin] = useState(() => getGuestSkin());
+  const demo = trpc.platform.demo.useQuery();
+  const demoProfile = demo.data?.profile;
+  const demoPath = demoProfile ? `/${demoProfile.username}` : "/mediarevolution";
+  const demoInitials = demoProfile?.displayName.split(" ").filter(Boolean).slice(0, 2).map((word) => word[0]).join("").toUpperCase() || "MR";
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -55,7 +60,7 @@ export default function Home() {
         <nav className="hidden items-center gap-7 text-xs font-bold text-slate-400 md:flex">
           <a href="#model" className="transition hover:text-cyan-100">The model</a>
           <a href="#membership" className="transition hover:text-cyan-100">Membership</a>
-          <Link href="/mediarevolution" className="transition hover:text-cyan-100">Explore a Portal</Link>
+          <Link href={demoPath} className="transition hover:text-cyan-100">Explore a Portal</Link>
         </nav>
         {isAuthenticated ? <Link href="/account" className="secondary-button !rounded-full !px-4 !py-2.5 !text-xs">My Portals</Link> : <div className="flex items-center gap-3"><Link href="/account" className="hidden text-xs font-bold text-slate-400 transition hover:text-cyan-100 sm:block">Sign in</Link><Link href="/join" className="secondary-button !rounded-full !px-4 !py-2.5 !text-xs">Join Synapse</Link></div>}
       </header>
@@ -71,8 +76,13 @@ export default function Home() {
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link href={isAuthenticated ? "/account" : "/join"} className="primary-button">{isAuthenticated ? "Open My Portals" : "Create free Account"} <ArrowRight size={16} /></Link>
-            <Link href="/mediarevolution" className="secondary-button">Explore a live Portal <Compass size={16} /></Link>
+            <Link href={demoPath} className="secondary-button">Explore a live Portal <Compass size={16} /></Link>
           </div>
+          <Link href={demoPath} className="mt-3 flex w-fit max-w-full items-center gap-3 rounded-xl border border-cyan-200/16 bg-cyan-300/[.045] px-3 py-2.5 transition hover:border-cyan-200/35 hover:bg-cyan-300/[.08]">
+            <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-lg border border-cyan-200/25 bg-gradient-to-br from-cyan-200 via-sky-300 to-violet-400 text-[10px] font-extrabold text-[#07101f]">{demoProfile?.avatarUrl ? <img src={demoProfile.avatarUrl} alt="" className="h-full w-full object-cover" /> : demoInitials}</span>
+            <span className="min-w-0"><span className="block text-[9px] font-extrabold uppercase tracking-[.14em] text-cyan-100">Featured demo Portal</span><span className="mt-0.5 block truncate text-xs font-bold text-white">{demoProfile?.displayName || "Media Revolution"} <span className="font-medium text-slate-500">· @{demoProfile?.username || "mediarevolution"}</span></span></span>
+            <Compass size={15} className="shrink-0 text-cyan-100" />
+          </Link>
           <div className="mt-9 flex flex-wrap gap-x-6 gap-y-3 text-xs font-semibold text-slate-500">
             <span className="flex items-center gap-2"><Check size={14} className="text-cyan-200" /> Create an Account free</span>
             <span className="flex items-center gap-2"><Check size={14} className="text-cyan-200" /> No card or payment details</span>
@@ -122,7 +132,7 @@ export default function Home() {
 
       <section className="relative z-10 border-y border-white/[0.07] bg-slate-950/25">
         <div className="mx-auto grid max-w-7xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[.82fr_1.18fr] lg:items-center lg:px-8 lg:py-24">
-          <div><span className="eyebrow">Discovery first</span><h2 className="font-display mt-5 text-3xl font-semibold tracking-[-.05em] text-white sm:text-4xl">The Portal acquires. The Network retains.</h2><p className="mt-5 max-w-md text-sm leading-7 text-slate-400">A stranger can immediately understand and explore a public identity. When they want to follow, Connect, react, or publish, Synapse invites them to become an intentional participant.</p><Link href="/mediarevolution" className="mt-7 inline-flex items-center gap-2 text-sm font-bold text-cyan-100 transition hover:gap-3">See the Portal experience <ArrowRight size={16} /></Link></div>
+          <div><span className="eyebrow">Discovery first</span><h2 className="font-display mt-5 text-3xl font-semibold tracking-[-.05em] text-white sm:text-4xl">The Portal acquires. The Network retains.</h2><p className="mt-5 max-w-md text-sm leading-7 text-slate-400">A stranger can immediately understand and explore a public identity. When they want to follow, Connect, react, or publish, Synapse invites them to become an intentional participant.</p><Link href={demoPath} className="mt-7 inline-flex items-center gap-2 text-sm font-bold text-cyan-100 transition hover:gap-3">See the Portal experience <ArrowRight size={16} /></Link></div>
           <div className="grid gap-3 sm:grid-cols-2">
             {["Account", "Profile", "Portal", "Nodes", "Signals", "Network"].map((item, index) => <div key={item} className={`rounded-2xl border p-5 ${index === 2 || index === 5 ? "border-cyan-200/25 bg-cyan-300/[.07]" : "border-white/[.08] bg-white/[.02]"}`}><p className="text-[10px] font-extrabold uppercase tracking-[.14em] text-slate-600">0{index + 1}</p><p className="font-display mt-5 text-lg font-semibold text-white">{item}</p><p className="mt-1 text-xs leading-5 text-slate-500">{["The secure sign-in that owns your Profiles.", "The identity being represented.", "The public interactive layer.", "Everything connected to identity.", "What the identity publishes.", "The relationship system."][index]}</p></div>)}
           </div>
@@ -136,7 +146,7 @@ export default function Home() {
         </div>
       </section>
 
-      <footer className="relative z-10 border-t border-white/[.07] px-4 py-8 sm:px-6 lg:px-8"><div className="mx-auto flex max-w-7xl flex-col gap-4 text-xs text-slate-600 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-center gap-2 font-semibold text-slate-400"><Network size={14} className="text-cyan-200" /> Synapse · Identity, in motion.</div><div className="flex gap-5"><a href="#model" className="hover:text-slate-300">Principles</a><a href="#membership" className="hover:text-slate-300">Membership</a><Link href="/mediarevolution" className="hover:text-slate-300">Demo Portal</Link></div></div></footer>
+      <footer className="relative z-10 border-t border-white/[.07] px-4 py-8 sm:px-6 lg:px-8"><div className="mx-auto flex max-w-7xl flex-col gap-4 text-xs text-slate-600 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-center gap-2 font-semibold text-slate-400"><Network size={14} className="text-cyan-200" /> Synapse · Identity, in motion.</div><div className="flex gap-5"><a href="#model" className="hover:text-slate-300">Principles</a><a href="#membership" className="hover:text-slate-300">Membership</a><Link href={demoPath} className="hover:text-slate-300">Demo Portal</Link></div></div></footer>
     </main>
   );
 }

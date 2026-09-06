@@ -10,6 +10,7 @@ const visibilityTypes = ["public", "followers", "connections", "subscribers", "p
 const imageAspects = ["wide", "square"] as const;
 const imageMimeTypes = ["image/jpeg", "image/png", "image/webp"] as const;
 const mimeExtensions: Record<(typeof imageMimeTypes)[number], string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
+const mediaInput = z.object({ storageUrl: z.string().regex(/^\/manus-storage\//), altText: z.string().trim().max(280).optional(), focalX: z.number().int().min(0).max(100).optional(), focalY: z.number().int().min(0).max(100).optional() });
 
 export const signalsRouter = router({
   listMine: protectedProcedure.input(z.object({ profileId: z.number().int().positive() })).query(async ({ ctx, input }) => {
@@ -26,12 +27,16 @@ export const signalsRouter = router({
     const stored = await storagePut(filename, image, input.mimeType);
     return { url: stored.url };
   }),
-  create: protectedProcedure.input(z.object({ profileId: z.number().int().positive(), type: z.enum(signalTypes), body: z.string().trim().max(5000), visibility: z.enum(visibilityTypes), reminderAt: z.coerce.date().optional(), imageUrl: z.string().regex(/^\/manus-storage\//).optional(), imageAspect: z.enum(imageAspects).optional() })).mutation(async ({ ctx, input }) => {
+  create: protectedProcedure.input(z.object({ profileId: z.number().int().positive(), type: z.enum(signalTypes), body: z.string().trim().max(5000), visibility: z.enum(visibilityTypes), reminderAt: z.coerce.date().optional(), imageAspect: z.enum(imageAspects).optional(), media: z.array(mediaInput).min(1).max(10).optional() })).mutation(async ({ ctx, input }) => {
     if (input.reminderAt && input.visibility !== "private") throw new TRPCError({ code: "BAD_REQUEST", message: "Reminders can only be attached to private notes" });
-    if (input.type === "image" && !input.imageUrl) throw new TRPCError({ code: "BAD_REQUEST", message: "Choose an image before publishing an image Signal" });
-    if (input.type !== "image" && !input.body) throw new TRPCError({ code: "BAD_REQUEST", message: "Write a Signal before publishing" });
-    if (input.type !== "image" && (input.imageUrl || input.imageAspect)) throw new TRPCError({ code: "BAD_REQUEST", message: "Image details belong only to image Signals" });
-    const signal = await createOwnedSignal(ctx.user.id, input);
+    const mediaCount = input.media?.length ?? 0;
+    if ((input.type === "image" || input.type === "gallery") && !mediaCount) throw new TRPCError({ code: "BAD_REQUEST", message: "Choose at least one image before publishing" });
+    if (mediaCount && input.media?.some((item) => !item.altText?.trim())) throw new TRPCError({ code: "BAD_REQUEST", message: "Add a short alt description for every image" });
+    if (input.type === "image" && mediaCount > 1) throw new TRPCError({ code: "BAD_REQUEST", message: "Use a gallery Signal for more than one image" });
+    if (input.type === "gallery" && mediaCount < 2) throw new TRPCError({ code: "BAD_REQUEST", message: "A gallery needs at least two images" });
+    if (input.type !== "image" && input.type !== "gallery" && (mediaCount || input.imageAspect)) throw new TRPCError({ code: "BAD_REQUEST", message: "Image details belong only to image Signals" });
+    if (input.type !== "image" && input.type !== "gallery" && !input.body) throw new TRPCError({ code: "BAD_REQUEST", message: "Write a Signal before publishing" });
+    const signal = await createOwnedSignal(ctx.user.id, { ...input, imageAspect: mediaCount ? input.imageAspect ?? "wide" : undefined });
     if (!signal) throw new TRPCError({ code: "NOT_FOUND", message: "Profile not found" });
     return signal;
   }),
