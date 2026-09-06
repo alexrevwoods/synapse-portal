@@ -443,6 +443,20 @@ export async function getViewerRelationshipState(userId: number, input: { source
   return { follow, connection, connectionDirection, sourceProfile: { id: source.id, displayName: source.displayName, username: source.username }, targetProfileId: target.id };
 }
 
+/** Removes a one-way follow or both directions of a mutual Connection for an owned Profile. */
+export async function removeProfileRelationship(userId: number, input: { sourceProfileId: number; targetUsername: string; type: "follow" | "connection" }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is unavailable");
+  const source = await getOwnedProfile(userId, input.sourceProfileId);
+  const target = await getPublishedProfileByUsername(input.targetUsername);
+  if (!source || !target || source.id === target.id) return false;
+  const direction = input.type === "connection"
+    ? or(and(eq(profileRelationships.sourceProfileId, source.id), eq(profileRelationships.targetProfileId, target.id)), and(eq(profileRelationships.sourceProfileId, target.id), eq(profileRelationships.targetProfileId, source.id)))
+    : and(eq(profileRelationships.sourceProfileId, source.id), eq(profileRelationships.targetProfileId, target.id));
+  await db.delete(profileRelationships).where(and(direction, eq(profileRelationships.type, input.type)));
+  return true;
+}
+
 export async function acceptIncomingConnection(userId: number, input: { profileId: number; relationshipId: number }) {
   const db = await getDb();
   if (!db) throw new Error("Database is unavailable");
@@ -491,6 +505,21 @@ export async function getPublicNetworkSummary(profileId: number) {
   });
 }
 
+/** Exposes a short, accepted relationship timeline for the public Portal context. */
+export async function getPublicRelationshipHistory(profileId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const relationships = await db.select().from(profileRelationships).where(and(or(eq(profileRelationships.sourceProfileId, profileId), eq(profileRelationships.targetProfileId, profileId)), eq(profileRelationships.status, "accepted"), inArray(profileRelationships.type, ["follow", "connection"]))).orderBy(desc(profileRelationships.updatedAt)).limit(5);
+  const relatedIds = Array.from(new Set(relationships.map((relationship) => relationship.sourceProfileId === profileId ? relationship.targetProfileId : relationship.sourceProfileId)));
+  const relatedProfiles = relatedIds.length ? await db.select().from(profiles).where(and(inArray(profiles.id, relatedIds), eq(profiles.isPublished, true))) : [];
+  const profileMap = new Map(relatedProfiles.map((related) => [related.id, related]));
+  return relationships.map((relationship) => {
+    const relatedId = relationship.sourceProfileId === profileId ? relationship.targetProfileId : relationship.sourceProfileId;
+    const related = profileMap.get(relatedId);
+    return related ? { id: relationship.id, type: relationship.type, happenedAt: relationship.updatedAt, profile: { id: related.id, username: related.username, displayName: related.displayName } } : null;
+  }).filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
+}
+
 /** Returns only public identity data, keeping unpublished and private nodes private by construction. */
 export async function getPublicPortalByUsername(username: string) {
   const db = await getDb();
@@ -501,12 +530,13 @@ export async function getPublicPortalByUsername(username: string) {
   const plan = (membershipRows[0]?.plan || "core") as MembershipPlan;
   const selectedSkin = normalizeSkinId(profile.portalTheme);
   const resolvedSkin = canUseSkin(plan, selectedSkin) ? selectedSkin : "signal";
-  const [rawNodes, connections, recentSignals, badges, network] = await Promise.all([
+  const [rawNodes, connections, recentSignals, badges, network, relationshipHistory] = await Promise.all([
     db.select().from(profileNodes).where(and(eq(profileNodes.profileId, profile.id), eq(profileNodes.isPublic, true))).orderBy(asc(profileNodes.sortOrder)),
     db.select().from(nodeConnections).where(eq(nodeConnections.profileId, profile.id)),
     db.select().from(signals).where(and(eq(signals.profileId, profile.id), eq(signals.visibility, "public"))).orderBy(desc(signals.publishedAt)).limit(20),
     getPublicProfileBadges(profile),
     getPublicNetworkSummary(profile.id),
+    getPublicRelationshipHistory(profile.id),
   ]);
   const enrichedNodes = (await enrichPortalNodes(rawNodes, true)).filter((node) => node.type !== "portal" || node.linkedPortal);
   const linkedPortalIds = Array.from(new Set(enrichedNodes.map((node) => node.linkedPortal?.id).filter((id): id is number => Boolean(id))));
@@ -527,7 +557,7 @@ export async function getPublicPortalByUsername(username: string) {
     return { ...node, linkedPortal };
   });
   const publicNodeIds = new Set(nodes.map((node) => node.id));
-  return { profile: { ...profile, portalTheme: resolvedSkin }, nodes, connections: connections.filter((connection) => publicNodeIds.has(connection.fromNodeId) && publicNodeIds.has(connection.toNodeId)), recentSignals, badges, network };
+  return { profile: { ...profile, portalTheme: resolvedSkin }, nodes, connections: connections.filter((connection) => publicNodeIds.has(connection.fromNodeId) && publicNodeIds.has(connection.toNodeId)), recentSignals, badges, network, relationshipHistory };
 }
 
 
@@ -670,7 +700,7 @@ export async function getFollowSuggestions(userId: number, profileId: number) {
   })));
 }
 
-export async function getTimelineForProfile(userId: number, profileId: number) {
+export async function getTimelineForProfile(userId: number, profileId: number, relationshipFilter: "all" | "following" | "connections" | "mine" = "all") {
   const db = await getDb();
   if (!db) return null;
   const profile = await getOwnedProfile(userId, profileId);
@@ -689,8 +719,15 @@ export async function getTimelineForProfile(userId: number, profileId: number) {
     db.select().from(blocks).where(or(eq(blocks.sourceProfileId, profileId), eq(blocks.targetProfileId, profileId))),
   ]);
   const blockedProfileIds = new Set(blockRows.map((block) => block.sourceProfileId === profileId ? block.targetProfileId : block.sourceProfileId));
-  const networkProfileIds = relationships.map((relationship) => relationship.sourceProfileId === profileId ? relationship.targetProfileId : relationship.sourceProfileId).filter((id) => !blockedProfileIds.has(id));
-  const feedProfileIds = Array.from(new Set([profileId, ...networkProfileIds]));
+  const matchingRelationships = relationshipFilter === "following"
+    ? relationships.filter((relationship) => relationship.type === "follow")
+    : relationshipFilter === "connections"
+      ? relationships.filter((relationship) => relationship.type === "connection")
+      : relationshipFilter === "mine"
+        ? []
+        : relationships;
+  const networkProfileIds = matchingRelationships.map((relationship) => relationship.sourceProfileId === profileId ? relationship.targetProfileId : relationship.sourceProfileId).filter((id) => !blockedProfileIds.has(id));
+  const feedProfileIds = relationshipFilter === "following" || relationshipFilter === "connections" ? Array.from(new Set(networkProfileIds)) : Array.from(new Set([profileId, ...networkProfileIds]));
   const rows = await db
     .select({ signal: signals, profile: profiles })
     .from(signals)

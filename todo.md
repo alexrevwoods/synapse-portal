@@ -91,3 +91,13 @@ The release uses **WhoAreWe** spelling exactly, presents **Where Identity Meets 
 - [x] Link pending inbound requests to the Network workspace and add direct notification acceptance.
 - [x] Add a **Viewing as** Portal selector with clear **Your Portal** and **Visitor view** context labels.
 - [x] Validate state labels, TypeScript, automated tests, and production build.
+
+## Owner Publishing and Relationship Management
+
+- [x] Replace Follow and Connect with owner-specific Portal actions when viewing an owned Portal.
+- [x] Add **Publish Signal** in the owner Portal header and at the Profile Feed heading.
+- [x] Show a Connection-request notification badge and direct link for owned Portals with incoming requests.
+- [x] Add confirmed unfollow and disconnect actions with persistent state refresh.
+- [x] Add All, Following, Connections, and My Signals filters to Timeline.
+- [x] Show a short public relationship activity history on each Portal.
+- [x] Validate responsive rendering, TypeScript, automated tests, and production build.

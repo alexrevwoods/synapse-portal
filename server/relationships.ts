@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { acceptIncomingConnection, createNotification, getNetworkForProfile, getOwnedProfile, getPublishedProfileByUsername, getViewerRelationshipState, isBlockedBetweenProfiles, upsertProfileRelationship } from "./db";
+import { acceptIncomingConnection, createNotification, getNetworkForProfile, getOwnedProfile, getPublishedProfileByUsername, getViewerRelationshipState, isBlockedBetweenProfiles, removeProfileRelationship, upsertProfileRelationship } from "./db";
 import { normalizeUsername } from "./profile";
 import { protectedProcedure, router } from "./_core/trpc";
 
@@ -35,6 +35,12 @@ export const relationshipsRouter = router({
     const relationship = await upsertProfileRelationship({ sourceProfileId: source.id, targetProfileId: target.id, type: "follow", status: "accepted" });
     await createNotification({ profileId: target.id, actorProfileId: source.id, type: "follow" });
     return relationship;
+  }),
+
+  remove: protectedProcedure.input(relationshipInput.extend({ type: z.enum(["follow", "connection"]) })).mutation(async ({ ctx, input }) => {
+    const removed = await removeProfileRelationship(ctx.user.id, input);
+    if (!removed) throw new TRPCError({ code: "NOT_FOUND", message: "Relationship not found" });
+    return { removed: true } as const;
   }),
 
   requestConnection: protectedProcedure.input(relationshipInput).mutation(async ({ ctx, input }) => {

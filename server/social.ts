@@ -37,8 +37,8 @@ export const socialRouter = router({
     .input(z.object({ username: z.string().trim().min(2).max(48), activeProfileId: z.number().int().positive().optional() }))
     .query(({ input }) => getPublicSignalFeed(input.username.replace(/^@/, "").toLowerCase(), input.activeProfileId)),
 
-  timeline: protectedProcedure.input(z.object({ profileId: z.number().int().positive() })).query(async ({ ctx, input }) => {
-    const feed = await getTimelineForProfile(ctx.user.id, input.profileId);
+  timeline: protectedProcedure.input(z.object({ profileId: z.number().int().positive(), relationshipFilter: z.enum(["all", "following", "connections", "mine"]).default("all") })).query(async ({ ctx, input }) => {
+    const feed = await getTimelineForProfile(ctx.user.id, input.profileId, input.relationshipFilter);
     if (!feed) throw new TRPCError({ code: "NOT_FOUND", message: "Profile not found" });
     return feed;
   }),
