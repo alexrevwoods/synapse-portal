@@ -43,6 +43,13 @@
       "when": 1788583887058,
       "tag": "0005_typical_white_queen",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1788669113926,
+      "tag": "0006_wise_jack_power",
+      "breakpoints": true
     }
   ]
 }

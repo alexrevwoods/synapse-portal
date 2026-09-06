@@ -561,8 +561,7 @@ export async function getAccountMembership(userId: number) {
   if (!db) return null;
   const existing = await db.select().from(memberships).where(eq(memberships.userId, userId)).limit(1);
   if (existing[0]) return existing[0];
-  const trialEndsAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-  const result = await db.insert(memberships).values({ userId, plan: "nexus", status: "trialing", trialEndsAt });
+  const result = await db.insert(memberships).values({ userId, plan: "core", status: "free", trialEndsAt: null });
   const rows = await db.select().from(memberships).where(eq(memberships.id, Number(result[0].insertId))).limit(1);
   return rows[0] ?? null;
 }

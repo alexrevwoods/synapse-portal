@@ -1,0 +1,1 @@
+ALTER TABLE `memberships` MODIFY COLUMN `membershipStatus` enum('free','trialing','active','canceled') NOT NULL DEFAULT 'free';

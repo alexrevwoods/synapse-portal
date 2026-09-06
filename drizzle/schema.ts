@@ -31,7 +31,7 @@ export const memberships = mysqlTable(
     id: int("id").autoincrement().primaryKey(),
     userId: int("userId").notNull(),
     plan: mysqlEnum("membershipPlan", ["core", "pulse", "nexus"]).default("nexus").notNull(),
-    status: mysqlEnum("membershipStatus", ["trialing", "active", "canceled"]).default("trialing").notNull(),
+    status: mysqlEnum("membershipStatus", ["free", "trialing", "active", "canceled"]).default("free").notNull(),
     trialEndsAt: timestamp("trialEndsAt"),
     currentPeriodEndsAt: timestamp("currentPeriodEndsAt"),
     cancelAtPeriodEnd: boolean("cancelAtPeriodEnd").default(false).notNull(),

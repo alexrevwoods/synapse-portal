@@ -4,6 +4,7 @@ import { ArrowRight, Check, Compass, GitFork, Layers3, Network, Sparkles, UsersR
 import HolographicCard from "@/components/HolographicCard";
 import InteractiveSynapseNetwork from "@/components/InteractiveSynapseNetwork";
 import HomeSkinPicker from "@/components/HomeSkinPicker";
+import SynapseMark from "@/components/SynapseMark";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getGuestSkin } from "@/lib/skins";
 
@@ -26,9 +27,9 @@ const principles = [
 ];
 
 const plans = [
-  { name: "Core", price: "$3", note: "One identity, intentionally built.", features: ["1 Profile", "Public Portal", "Signals, Follow & Connect", "90-day analytics"] },
-  { name: "Pulse", price: "$6", note: "For people shaping several worlds.", features: ["Up to 3 Profiles", "365-day analytics", "Scheduled Signals & Nodes", "Advanced customization"], featured: true },
-  { name: "Nexus", price: "$9", note: "The full surface area of your network.", features: ["Up to 5 Profiles", "Full analytics history", "Custom domain", "Advanced Path Analytics"] },
+  { name: "Free Core", price: "Free", note: "One identity, intentionally built.", features: ["1 Profile", "Public Portal", "Signals, Follow & Connect", "6 included Skins"] },
+  { name: "Pulse", price: "Later", note: "For people shaping several worlds.", features: ["Up to 3 Profiles", "9 included Skins", "Scheduled Signals & Nodes", "Advanced customization"], featured: true },
+  { name: "Nexus", price: "Later", note: "The full surface area of your network.", features: ["Up to 5 Profiles", "12 Skins + Brand Studio", "Custom-domain setup", "Advanced Path Analytics"] },
 ];
 
 export default function Home() {
@@ -49,8 +50,7 @@ export default function Home() {
       <div className="grid-noise" />
       <header className="relative z-20 mx-auto flex max-w-7xl items-center justify-between px-4 py-5 sm:px-6 lg:px-8">
         <Link href="/" className="flex items-center gap-2.5" aria-label="Synapse home">
-          <span className="grid h-8 w-8 place-items-center rounded-xl border border-cyan-200/30 bg-cyan-200/10 text-cyan-100 shadow-[0_0_24px_rgba(119,230,251,.13)]"><Network size={17} strokeWidth={2.3} /></span>
-          <span className="font-display text-base font-semibold tracking-[-0.04em] text-white">synapse</span>
+          <SynapseMark />
         </Link>
         <nav className="hidden items-center gap-7 text-xs font-bold text-slate-400 md:flex">
           <a href="#model" className="transition hover:text-cyan-100">The model</a>
@@ -62,7 +62,7 @@ export default function Home() {
 
       <section className="relative z-10 mx-auto grid max-w-7xl gap-12 px-4 pb-20 pt-16 sm:px-6 lg:grid-cols-[1.03fr_.97fr] lg:items-center lg:px-8 lg:pb-28 lg:pt-24">
         <div className="max-w-2xl">
-          <span className="eyebrow"><span className="signal-dot" /> A paid social identity network</span>
+          <span className="eyebrow"><span className="signal-dot" /> An intentional social identity network</span>
           <h1 className="font-display mt-6 max-w-3xl text-4xl font-semibold tracking-[-0.06em] text-white sm:text-5xl lg:text-[4.2rem] lg:leading-[1.02]">
             Your internet presence isn&apos;t a list. <span className="bg-gradient-to-r from-cyan-200 via-sky-300 to-violet-300 bg-clip-text text-transparent">It&apos;s a network.</span>
           </h1>
@@ -70,12 +70,12 @@ export default function Home() {
             Build an identity people can explore. Connect your work, projects, places, and people—then participate in a social layer built around real relationships.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Link href={isAuthenticated ? "/account" : "/join"} className="primary-button">{isAuthenticated ? "Open My Portals" : "Build your Synapse"} <ArrowRight size={16} /></Link>
+            <Link href={isAuthenticated ? "/account" : "/join"} className="primary-button">{isAuthenticated ? "Open My Portals" : "Create free Account"} <ArrowRight size={16} /></Link>
             <Link href="/@alex" className="secondary-button">Explore a live Portal <Compass size={16} /></Link>
           </div>
           <div className="mt-9 flex flex-wrap gap-x-6 gap-y-3 text-xs font-semibold text-slate-500">
-            <span className="flex items-center gap-2"><Check size={14} className="text-cyan-200" /> Public discovery is free</span>
-            <span className="flex items-center gap-2"><Check size={14} className="text-cyan-200" /> 7-day Nexus trial</span>
+            <span className="flex items-center gap-2"><Check size={14} className="text-cyan-200" /> Create an Account free</span>
+            <span className="flex items-center gap-2"><Check size={14} className="text-cyan-200" /> No card or payment details</span>
             <span className="flex items-center gap-2"><Check size={14} className="text-cyan-200" /> No ads. No attention traps.</span>
           </div>
           {isAuthenticated ? <Link href="/skins" className="mt-8 inline-flex items-center gap-2 text-xs font-bold text-cyan-100 transition hover:text-cyan-50">Shape your full platform Skin <ArrowRight size={14} /></Link> : <HomeSkinPicker activeSkin={guestSkin} onChange={setGuestSkin} />}
@@ -124,15 +124,15 @@ export default function Home() {
         <div className="mx-auto grid max-w-7xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[.82fr_1.18fr] lg:items-center lg:px-8 lg:py-24">
           <div><span className="eyebrow">Discovery first</span><h2 className="font-display mt-5 text-3xl font-semibold tracking-[-.05em] text-white sm:text-4xl">The Portal acquires. The Network retains.</h2><p className="mt-5 max-w-md text-sm leading-7 text-slate-400">A stranger can immediately understand and explore a public identity. When they want to follow, Connect, react, or publish, Synapse invites them to become an intentional participant.</p><Link href="/@alex" className="mt-7 inline-flex items-center gap-2 text-sm font-bold text-cyan-100 transition hover:gap-3">See the Portal experience <ArrowRight size={16} /></Link></div>
           <div className="grid gap-3 sm:grid-cols-2">
-            {["Account", "Profile", "Portal", "Nodes", "Signals", "Network"].map((item, index) => <div key={item} className={`rounded-2xl border p-5 ${index === 2 || index === 5 ? "border-cyan-200/25 bg-cyan-300/[.07]" : "border-white/[.08] bg-white/[.02]"}`}><p className="text-[10px] font-extrabold uppercase tracking-[.14em] text-slate-600">0{index + 1}</p><p className="font-display mt-5 text-lg font-semibold text-white">{item}</p><p className="mt-1 text-xs leading-5 text-slate-500">{["Who pays and logs in.", "The identity being represented.", "The public interactive layer.", "Everything connected to identity.", "What the identity publishes.", "The relationship system."][index]}</p></div>)}
+            {["Account", "Profile", "Portal", "Nodes", "Signals", "Network"].map((item, index) => <div key={item} className={`rounded-2xl border p-5 ${index === 2 || index === 5 ? "border-cyan-200/25 bg-cyan-300/[.07]" : "border-white/[.08] bg-white/[.02]"}`}><p className="text-[10px] font-extrabold uppercase tracking-[.14em] text-slate-600">0{index + 1}</p><p className="font-display mt-5 text-lg font-semibold text-white">{item}</p><p className="mt-1 text-xs leading-5 text-slate-500">{["The secure sign-in that owns your Profiles.", "The identity being represented.", "The public interactive layer.", "Everything connected to identity.", "What the identity publishes.", "The relationship system."][index]}</p></div>)}
           </div>
         </div>
       </section>
 
       <section id="membership" className="relative z-10 mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
-        <div className="mx-auto max-w-2xl text-center"><span className="eyebrow">Membership creates intention</span><h2 className="font-display mt-5 text-3xl font-semibold tracking-[-.05em] text-white sm:text-4xl">Choose the depth of your network.</h2><p className="mt-4 text-sm leading-6 text-slate-500">Discover public identities freely. Pay only when it&apos;s time to build, publish, and participate.</p></div>
+        <div className="mx-auto max-w-2xl text-center"><span className="eyebrow">Start with your identity</span><h2 className="font-display mt-5 text-3xl font-semibold tracking-[-.05em] text-white sm:text-4xl">Create free. Expand when you need to.</h2><p className="mt-4 text-sm leading-6 text-slate-500">Every new Account begins with Free Core—one Profile, public Portal, social participation, and six platform Skins. Paid upgrades are planned for later.</p></div>
         <div className="mt-10 grid gap-4 lg:grid-cols-3">
-          {plans.map((plan) => <HolographicCard key={plan.name} className={`pricing-tier p-6 ${plan.featured ? "pricing-tier--featured" : ""}`}><div className="flex items-center justify-between"><p className="font-display text-lg font-semibold text-white">{plan.name}</p>{plan.featured && <span className="rounded-full bg-cyan-200 px-2.5 py-1 text-[9px] font-extrabold uppercase tracking-[.13em] text-[#061018]">Most connected</span>}</div><p className="mt-5 font-display text-4xl font-semibold tracking-[-.05em] text-white">{plan.price}<span className="ml-1 text-sm font-medium text-slate-500">/ month</span></p><p className="mt-3 min-h-10 text-sm leading-5 text-slate-500">{plan.note}</p><ul className="mt-6 space-y-3 border-t border-white/[.09] pt-5">{plan.features.map((feature) => <li key={feature} className="flex items-center gap-2 text-xs font-semibold text-slate-300"><Check size={14} className="text-cyan-200" />{feature}</li>)}</ul><Link href="/join" className={plan.featured ? "primary-button mt-7 w-full" : "secondary-button mt-7 w-full"}>Start 7-day trial</Link></HolographicCard>)}
+          {plans.map((plan) => <HolographicCard key={plan.name} className={`pricing-tier p-6 ${plan.featured ? "pricing-tier--featured" : ""}`}><div className="flex items-center justify-between"><p className="font-display text-lg font-semibold text-white">{plan.name}</p>{plan.featured && <span className="rounded-full bg-cyan-200 px-2.5 py-1 text-[9px] font-extrabold uppercase tracking-[.13em] text-[#061018]">Planned</span>}</div><p className="mt-5 font-display text-4xl font-semibold tracking-[-.05em] text-white">{plan.price}{plan.price === "Free" && <span className="ml-1 text-sm font-medium text-slate-500">to start</span>}</p><p className="mt-3 min-h-10 text-sm leading-5 text-slate-500">{plan.note}</p><ul className="mt-6 space-y-3 border-t border-white/[.09] pt-5">{plan.features.map((feature) => <li key={feature} className="flex items-center gap-2 text-xs font-semibold text-slate-300"><Check size={14} className="text-cyan-200" />{feature}</li>)}</ul><Link href="/join" className={plan.name === "Free Core" ? "primary-button mt-7 w-full" : "secondary-button mt-7 w-full"}>{plan.name === "Free Core" ? "Create free Account" : "Included later"}</Link></HolographicCard>)}
         </div>
       </section>
 
