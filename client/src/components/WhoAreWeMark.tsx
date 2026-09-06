@@ -1,5 +1,21 @@
+import { WHOAREWE_ASSETS, WHOAREWE_BRAND } from "@shared/brand";
 import { cn } from "@/lib/utils";
 
-export default function WhoAreWeMark({ className, label = true, tagline = false }: { className?: string; label?: boolean; tagline?: boolean }) {
-  return <span className={cn("whoarewe-mark", className)} aria-label="WhoAreWe"><span className="whoarewe-mark__icon" aria-hidden="true"><span className="whoarewe-mark__line whoarewe-mark__line--one" /><span className="whoarewe-mark__line whoarewe-mark__line--two" /><span className="whoarewe-mark__line whoarewe-mark__line--three" /><span className="whoarewe-mark__node whoarewe-mark__node--identity" /><span className="whoarewe-mark__node whoarewe-mark__node--connection" /><span className="whoarewe-mark__node whoarewe-mark__node--opportunity" /></span>{label && <span className="whoarewe-mark__copy"><span className="font-display whoarewe-mark__word"><span>Who</span><span className="whoarewe-mark__emphasis">Are</span><span>We</span></span>{tagline && <span className="whoarewe-mark__tagline">Where Identity Meets Opportunity.</span>}</span>}</span>;
+type WhoAreWeMarkProps = {
+  className?: string;
+  /** Show the complete official wordmark. False shows the official icon only. */
+  label?: boolean;
+  /** Use the official logo-plus-tagline lockup where ample space is available. */
+  tagline?: boolean;
+};
+
+export default function WhoAreWeMark({ className, label = true, tagline = false }: WhoAreWeMarkProps) {
+  const source = tagline ? WHOAREWE_ASSETS.logoTaglineDark : label ? WHOAREWE_ASSETS.primaryLogoDark : WHOAREWE_ASSETS.iconSvg;
+  const alt = tagline ? `${WHOAREWE_BRAND.name} — ${WHOAREWE_BRAND.tagline}` : WHOAREWE_BRAND.name;
+
+  return (
+    <span className={cn("whoarewe-mark", tagline && "whoarewe-mark--tagline", !label && "whoarewe-mark--icon", className)}>
+      <img src={source} alt={alt} className="whoarewe-mark__asset" />
+    </span>
+  );
 }

@@ -1,0 +1,23 @@
+{
+  "name": "WhoAreWe — Where Identity Meets Opportunity",
+  "short_name": "WhoAreWe",
+  "description": "People, businesses, communities, and ideas connected with purpose.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#080B14",
+  "theme_color": "#080B14",
+  "icons": [
+    {
+      "src": "/manus-storage/WhoAreWe_Icon_192x192_ca3b9956.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/manus-storage/WhoAreWe_Icon_512x512_b46919b3.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

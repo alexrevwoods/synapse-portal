@@ -19,3 +19,13 @@ The historical database migration snapshots retain prior enum values so that Dri
 
 ## Acceptance rules
 The release uses **WhoAreWe** spelling exactly, presents **Where Identity Meets Opportunity.** in the brand system, preserves existing product behavior, and keeps the public experience free of legacy product branding.
+
+## Official Brand Asset Deployment
+
+- [x] Extract and catalogue the supplied WhoAreWe Official Brand Asset Package.
+- [x] Upload official production logo, three-node icon, favicon, PWA icon, Apple touch icon, and OpenGraph art to managed storage.
+- [x] Centralize official asset paths, terminology, and color references in `shared/brand.ts`.
+- [x] Replace the recreated interface mark with the supplied official logo and icon assets.
+- [x] Import the supplied WhoAreWe token stylesheet and align global aliases to the approved palette.
+- [x] Configure favicon, PWA manifest, Apple touch icon, OpenGraph, and Twitter metadata with official assets.
+- [x] Validate the desktop and mobile presentation, asset URLs, TypeScript, test suite, and production build.

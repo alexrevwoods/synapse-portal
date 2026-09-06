@@ -1,0 +1,10 @@
+:root {
+  --waw-deep-navy: #080B14;
+  --waw-deep-navy-2: #0B1020;
+  --waw-cyan: #00D8FF;
+  --waw-purple: #9B4DFF;
+  --waw-green: #7CFF38;
+  --waw-white: #F7F9FC;
+  --waw-slate: #667085;
+  --waw-gradient: linear-gradient(135deg, #7CFF38 0%, #00D8FF 48%, #9B4DFF 100%);
+}
