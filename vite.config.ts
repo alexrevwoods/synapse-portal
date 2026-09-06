@@ -150,10 +150,22 @@ function vitePluginManusDebugCollector(): Plugin {
   };
 }
 
-const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector()];
+const plugins = [
+  react(),
+  tailwindcss(),
+  // jsx-loc emits jsxDEV helpers for local diagnostics. Those helpers are not
+  // available in the production React SSR runtime, so keep the locator out of
+  // the server bundle while retaining it for the normal browser build.
+  ...(process.env.WHOAREWE_SSR_BUILD ? [] : [jsxLocPlugin()]),
+  vitePluginManusRuntime(),
+  vitePluginManusDebugCollector(),
+];
 
 export default defineConfig({
   plugins,
+  // The Manus runtime config enables jsxDEV for browser diagnostics. SSR runs
+  // under React's production server runtime, where only jsx/jsxs are exported.
+  esbuild: process.env.WHOAREWE_SSR_BUILD ? { jsx: "automatic", jsxDev: false } : undefined,
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "client", "src"),

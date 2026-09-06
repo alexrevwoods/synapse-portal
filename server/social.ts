@@ -7,6 +7,7 @@ import {
   getDiscoveryFeed,
   getFollowSuggestions,
   getNotificationsForProfile,
+  getPublicSignalByUsernameAndId,
   getPublicSignalFeed,
   getTimelineForProfile,
   getUnreadCommentCount,
@@ -36,6 +37,10 @@ export const socialRouter = router({
   publicFeed: publicProcedure
     .input(z.object({ username: z.string().trim().min(2).max(48), activeProfileId: z.number().int().positive().optional() }))
     .query(({ input }) => getPublicSignalFeed(input.username.replace(/^@/, "").toLowerCase(), input.activeProfileId)),
+
+  publicSignal: publicProcedure
+    .input(z.object({ username: z.string().trim().min(2).max(48), signalId: z.number().int().positive() }))
+    .query(({ input }) => getPublicSignalByUsernameAndId(input.username.replace(/^@/, "").toLowerCase(), input.signalId)),
 
   timeline: protectedProcedure.input(z.object({ profileId: z.number().int().positive(), relationshipFilter: z.enum(["all", "following", "connections", "mine"]).default("all") })).query(async ({ ctx, input }) => {
     const feed = await getTimelineForProfile(ctx.user.id, input.profileId, input.relationshipFilter);

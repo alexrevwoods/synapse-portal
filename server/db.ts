@@ -609,6 +609,67 @@ export async function getPublicSignalFeed(username: string, currentProfileId?: n
   return enrichSignals(rows, currentProfileId);
 }
 
+/** Public, canonical Signal lookup used by detail pages and server rendering. */
+export async function getPublicSignalByUsernameAndId(username: string, signalId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db
+    .select({ signal: signals, profile: profiles })
+    .from(signals)
+    .innerJoin(profiles, eq(signals.profileId, profiles.id))
+    .where(and(eq(profiles.username, username), eq(profiles.isPublished, true), eq(signals.id, signalId), eq(signals.visibility, "public")))
+    .limit(1);
+  const enriched = await enrichSignals(rows);
+  return enriched[0] ?? null;
+}
+
+/** Lightweight public index used only for crawler sitemaps; private content is never returned. */
+export async function getPublicSitemapEntries() {
+  const db = await getDb();
+  if (!db) return { portals: [], signals: [] };
+  const [portalRows, signalRows] = await Promise.all([
+    db.select({ username: profiles.username, updatedAt: profiles.updatedAt }).from(profiles).where(eq(profiles.isPublished, true)),
+    db.select({ username: profiles.username, signalId: signals.id, updatedAt: signals.updatedAt, publishedAt: signals.publishedAt }).from(signals).innerJoin(profiles, eq(signals.profileId, profiles.id)).where(and(eq(profiles.isPublished, true), eq(signals.visibility, "public"))),
+  ]);
+  return { portals: portalRows, signals: signalRows };
+}
+
+/** Updates owner-controlled Signal content and technical metadata without exposing private drafts. */
+export async function updateOwnedSignal(
+  userId: number,
+  input: { profileId: number; signalId: number; body: string; seoTitle?: string | null; seoDescription?: string | null; seoImageUrl?: string | null },
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is unavailable");
+  const profile = await getOwnedProfile(userId, input.profileId);
+  if (!profile) return null;
+  const owned = await db
+    .select()
+    .from(signals)
+    .where(and(eq(signals.id, input.signalId), eq(signals.profileId, input.profileId)))
+    .limit(1);
+  if (!owned[0]) return null;
+
+  if (input.seoImageUrl) {
+    const media = await db
+      .select()
+      .from(signalMedia)
+      .where(and(eq(signalMedia.signalId, input.signalId), eq(signalMedia.storageUrl, input.seoImageUrl)))
+      .limit(1);
+    if (!media[0]) throw new Error("Featured image must belong to this Signal");
+  }
+
+  await db.update(signals).set({
+    body: input.body,
+    seoTitle: input.seoTitle?.trim() || null,
+    seoDescription: input.seoDescription?.trim() || null,
+    seoImageUrl: input.seoImageUrl || null,
+  }).where(eq(signals.id, input.signalId));
+  const updated = await db.select().from(signals).where(eq(signals.id, input.signalId)).limit(1);
+  const media = await getMediaForSignals(db, [input.signalId]);
+  return updated[0] ? { ...updated[0], media: media.get(input.signalId) ?? [] } : null;
+}
+
 type DiscoveryType = "all" | "personal" | "creator" | "business" | "organization" | "project";
 
 export async function getDiscoverablePortals(input: { query?: string; profileType?: DiscoveryType; interestKey?: string }) {

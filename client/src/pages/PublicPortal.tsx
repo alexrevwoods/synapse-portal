@@ -14,6 +14,7 @@ import WhoAreWeMark from "@/components/WhoAreWeMark";
 import DemoPortalGuide from "@/components/DemoPortalGuide";
 import ProfileBadgeStrip from "@/components/ProfileBadgeStrip";
 import type { SignalEntry } from "@/components/SocialSignalCard";
+import { useDocumentTitle } from "@/components/Head";
 
 const demoProfile = { id: -1, displayName: "Alex Revwoods", username: "alex", type: "creator", bio: "A filmmaker and founder building sharper stories for growing brands.", location: "Toronto" };
 const demoEntries: SignalEntry[] = [
@@ -50,6 +51,7 @@ export default function PublicPortal() {
   const requestConnection = trpc.relationships.requestConnection.useMutation({ onSuccess: () => { setConnectionRequested(true); utils.relationships.state.invalidate(); if (sourceProfileId) utils.relationships.network.invalidate({ profileId: sourceProfileId }); toast.success("Connection request sent"); }, onError: (error) => toast.error(error.message) });
   const removeRelationship = trpc.relationships.remove.useMutation({ onSuccess: (_result, input) => { if (input.type === "follow") setFollowing(false); else setConnectionRequested(false); utils.relationships.state.invalidate(); if (sourceProfileId) utils.relationships.network.invalidate({ profileId: sourceProfileId }); toast.success(input.type === "follow" ? "Unfollowed" : "Connection removed"); }, onError: (error) => toast.error(error.message) });
   const profile = portal.data?.profile ?? (username === "alex" ? demoProfile : null);
+  useDocumentTitle(profile ? `${profile.displayName} (@${profile.username}) · WhoAreWe` : undefined);
   const isDemo = !portal.data && username === "alex";
   const isFeaturedDemo = Boolean(portal.data?.profile.id && portal.data.profile.id === platformDemo.data?.profile?.id);
   const portalTheme = isDemo ? "signal" : portal.data?.profile.portalTheme || "signal";

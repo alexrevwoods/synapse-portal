@@ -10,7 +10,7 @@ import { trpc } from "@/lib/trpc";
 export default function Feed() {
   const { isAuthenticated, loading } = useAuth();
   const profiles = trpc.profile.my.useQuery(undefined, { enabled: isAuthenticated });
-  const savedProfileId = useMemo(() => Number(window.localStorage.getItem("whoarewe-active-profile-id")), []);
+  const savedProfileId = useMemo(() => typeof window === "undefined" ? 0 : Number(window.localStorage.getItem("whoarewe-active-profile-id")), []);
   const [selectedProfileId, setSelectedProfileId] = useState<number | null>(null);
   const activeProfile = profiles.data?.find((profile) => profile.id === selectedProfileId && profile.isPublished) || profiles.data?.find((profile) => profile.id === savedProfileId && profile.isPublished) || profiles.data?.find((profile) => profile.isPublished);
   const timeline = trpc.social.timeline.useQuery({ profileId: activeProfile?.id || 0 }, { enabled: Boolean(activeProfile?.id) });

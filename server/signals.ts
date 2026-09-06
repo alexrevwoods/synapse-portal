@@ -1,7 +1,8 @@
 import crypto from "node:crypto";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { createOwnedSignal, getOwnedProfile, getOwnedSignals, updateOwnedPrivateNote } from "./db";
+import { createOwnedSignal, getOwnedProfile, getOwnedSignals, updateOwnedPrivateNote, updateOwnedSignal } from "./db";
+import { watermarkSignalImage } from "./imageWatermark";
 import { storagePut } from "./storage";
 import { protectedProcedure, router } from "./_core/trpc";
 
@@ -23,8 +24,14 @@ export const signalsRouter = router({
     if (!profile) throw new TRPCError({ code: "NOT_FOUND", message: "Profile not found" });
     const image = Buffer.from(input.base64, "base64");
     if (!image.length || image.length > 8 * 1024 * 1024) throw new TRPCError({ code: "PAYLOAD_TOO_LARGE", message: "Choose an image smaller than 8 MB" });
+    let protectedImage: Buffer;
+    try {
+      protectedImage = await watermarkSignalImage(image, input.mimeType, profile.displayName);
+    } catch {
+      throw new TRPCError({ code: "BAD_REQUEST", message: "This image could not be processed. Use a valid JPG, PNG, or WebP file." });
+    }
     const filename = `signals/${ctx.user.id}/${profile.id}/${crypto.randomUUID()}.${mimeExtensions[input.mimeType]}`;
-    const stored = await storagePut(filename, image, input.mimeType);
+    const stored = await storagePut(filename, protectedImage, input.mimeType);
     return { url: stored.url };
   }),
   create: protectedProcedure.input(z.object({ profileId: z.number().int().positive(), type: z.enum(signalTypes), body: z.string().trim().max(5000), visibility: z.enum(visibilityTypes), reminderAt: z.coerce.date().optional(), imageAspect: z.enum(imageAspects).optional(), media: z.array(mediaInput).min(1).max(10).optional() })).mutation(async ({ ctx, input }) => {
@@ -44,5 +51,15 @@ export const signalsRouter = router({
     const signal = await updateOwnedPrivateNote(ctx.user.id, input);
     if (!signal) throw new TRPCError({ code: "NOT_FOUND", message: "Private note not found" });
     return signal;
+  }),
+  update: protectedProcedure.input(z.object({ profileId: z.number().int().positive(), signalId: z.number().int().positive(), body: z.string().trim().max(5000), seoTitle: z.string().trim().max(120).optional(), seoDescription: z.string().trim().max(200).optional(), seoImageUrl: z.string().regex(/^\/manus-storage\//).optional().or(z.literal("")) })).mutation(async ({ ctx, input }) => {
+    try {
+      const signal = await updateOwnedSignal(ctx.user.id, { ...input, seoTitle: input.seoTitle || null, seoDescription: input.seoDescription || null, seoImageUrl: input.seoImageUrl || null });
+      if (!signal) throw new TRPCError({ code: "NOT_FOUND", message: "Signal not found" });
+      return signal;
+    } catch (error) {
+      if (error instanceof TRPCError) throw error;
+      throw new TRPCError({ code: "BAD_REQUEST", message: error instanceof Error ? error.message : "Signal could not be updated" });
+    }
   }),
 });

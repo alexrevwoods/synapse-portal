@@ -41,7 +41,7 @@ export default function LivePortalGraph({ profile, nodes, connections, onNodeOpe
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isSwitcherOpen, setIsSwitcherOpen] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(() => new URLSearchParams(window.location.search).get("network") === "full");
+  const [isFullscreen, setIsFullscreen] = useState(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("network") === "full");
   const [showGestureHint, setShowGestureHint] = useState(false);
   const nodeLookup = useMemo(() => new Map(nodes.map((node) => [node.id, node])), [nodes]);
   const allLinkedRegions = useMemo(() => nodes.filter((node) => node.type === "portal" && node.linkedPortal).map((node, index) => ({ node, portal: node.linkedPortal!, regionX: 150 + index * 100 })), [nodes]);

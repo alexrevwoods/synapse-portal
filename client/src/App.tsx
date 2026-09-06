@@ -1,8 +1,9 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
-import { Route, Switch } from "wouter";
+import { Route, Router as WouterRouter, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
+import { Head } from "./components/Head";
 import AppSplash from "./components/AppSplash";
 import PlatformSkinInitializer from "./components/PlatformSkinInitializer";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -20,6 +21,7 @@ import Notifications from "./pages/Notifications";
 import Onboarding from "./pages/Onboarding";
 import PortalBuilder from "./pages/PortalBuilder";
 import PublicPortal from "./pages/PublicPortal";
+import PublicSignal from "./pages/PublicSignal";
 import Signals from "./pages/Signals";
 import SkinStudio from "./pages/SkinStudio";
 import Timeline from "./pages/Timeline";
@@ -45,6 +47,7 @@ function Router() {
       <Route path="/notifications/:profileId" component={Notifications} />
       <Route path="/insights/:profileId" component={Insights} />
       <Route path="/moderation" component={Moderation} />
+      <Route path="/:username/signals/:signalId" component={PublicSignal} />
       <Route path="/:username" component={PublicPortal} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
@@ -52,20 +55,24 @@ function Router() {
   );
 }
 
-function App() {
+function App({ ssrPath }: { ssrPath?: string } = {}) {
+  const content = <ErrorBoundary>
+    <ThemeProvider defaultTheme="dark">
+      <TooltipProvider>
+        <Head />
+        <AppSplash>
+          <PlatformSkinInitializer>
+            <Toaster theme="dark" />
+            <Router />
+          </PlatformSkinInitializer>
+        </AppSplash>
+      </TooltipProvider>
+    </ThemeProvider>
+  </ErrorBoundary>;
+
+  if (ssrPath) return <WouterRouter ssrPath={ssrPath}>{content}</WouterRouter>;
   return (
-    <ErrorBoundary>
-      <ThemeProvider defaultTheme="dark">
-        <TooltipProvider>
-          <AppSplash>
-            <PlatformSkinInitializer>
-              <Toaster theme="dark" />
-              <Router />
-            </PlatformSkinInitializer>
-          </AppSplash>
-        </TooltipProvider>
-      </ThemeProvider>
-    </ErrorBoundary>
+    content
   );
 }
 

@@ -193,6 +193,10 @@ export const signals = mysqlTable(
     attachedNodeId: int("attachedNodeId"),
     imageUrl: text("imageUrl"),
     imageAspect: mysqlEnum("signalImageAspect", ["wide", "square"]),
+    /** Per-Signal discovery metadata. Blank values fall back to the Signal body and first image. */
+    seoTitle: varchar("seoTitle", { length: 120 }),
+    seoDescription: varchar("seoDescription", { length: 200 }),
+    seoImageUrl: text("seoImageUrl"),
     isPinned: boolean("isPinned").default(false).notNull(),
     reminderAt: timestamp("reminderAt"),
     publishedAt: timestamp("publishedAt"),
