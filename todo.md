@@ -82,3 +82,12 @@ The release uses **WhoAreWe** spelling exactly, presents **Where Identity Meets 
 - [x] Add an edge-to-edge, scroll-locking full-network map with a persistent **Minimize** action.
 - [x] Preserve accessible Escape handling and auto-close the Portal drawer before switching map regions.
 - [x] Validate mobile rendering, TypeScript, automated tests, and the production build.
+
+## Persistent Relationship States and Viewer Context
+
+- [x] Add a viewer-specific relationship state query for follow and mutual Connection status.
+- [x] Persistively label Follow as **Following** and accepted Connection as **Connected**.
+- [x] Prevent reciprocal accepted Connections from being overwritten by a new pending request.
+- [x] Link pending inbound requests to the Network workspace and add direct notification acceptance.
+- [x] Add a **Viewing as** Portal selector with clear **Your Portal** and **Visitor view** context labels.
+- [x] Validate state labels, TypeScript, automated tests, and production build.

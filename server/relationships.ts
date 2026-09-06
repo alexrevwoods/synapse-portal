@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { acceptIncomingConnection, createNotification, getNetworkForProfile, getOwnedProfile, getPublishedProfileByUsername, isBlockedBetweenProfiles, upsertProfileRelationship } from "./db";
+import { acceptIncomingConnection, createNotification, getNetworkForProfile, getOwnedProfile, getPublishedProfileByUsername, getViewerRelationshipState, isBlockedBetweenProfiles, upsertProfileRelationship } from "./db";
 import { normalizeUsername } from "./profile";
 import { protectedProcedure, router } from "./_core/trpc";
 
@@ -18,6 +18,12 @@ async function resolveRelationship(ctx: { user: { id: number } }, input: z.infer
 }
 
 export const relationshipsRouter = router({
+  state: protectedProcedure.input(relationshipInput).query(async ({ ctx, input }) => {
+    const relationshipState = await getViewerRelationshipState(ctx.user.id, { sourceProfileId: input.sourceProfileId, targetUsername: normalizeUsername(input.targetUsername) });
+    if (!relationshipState) throw new TRPCError({ code: "NOT_FOUND", message: "Relationship context is unavailable" });
+    return relationshipState;
+  }),
+
   network: protectedProcedure.input(z.object({ profileId: z.number().int().positive() })).query(async ({ ctx, input }) => {
     const network = await getNetworkForProfile(ctx.user.id, input.profileId);
     if (!network) throw new TRPCError({ code: "NOT_FOUND", message: "Profile not found" });
@@ -33,6 +39,11 @@ export const relationshipsRouter = router({
 
   requestConnection: protectedProcedure.input(relationshipInput).mutation(async ({ ctx, input }) => {
     const { source, target } = await resolveRelationship(ctx, input);
+    const existing = await getViewerRelationshipState(ctx.user.id, { sourceProfileId: source.id, targetUsername: target.username });
+    if (existing?.connection?.status === "accepted") return existing.connection;
+    if (existing?.connection?.status === "pending" && existing.connectionDirection === "incoming") {
+      throw new TRPCError({ code: "CONFLICT", message: "This Portal has already asked to Connect with you. Accept it in your Network." });
+    }
     const relationship = await upsertProfileRelationship({ sourceProfileId: source.id, targetProfileId: target.id, type: "connection", status: "pending" });
     await createNotification({ profileId: target.id, actorProfileId: source.id, type: "connection_request" });
     return relationship;

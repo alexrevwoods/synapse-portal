@@ -426,6 +426,23 @@ export async function upsertProfileRelationship(input: { sourceProfileId: number
   return result[0] ?? null;
 }
 
+/** Returns the current viewer Profile's distinct follow and Connection state for a Portal. */
+export async function getViewerRelationshipState(userId: number, input: { sourceProfileId: number; targetUsername: string }) {
+  const db = await getDb();
+  if (!db) return null;
+  const source = await getOwnedProfile(userId, input.sourceProfileId);
+  const target = await getPublishedProfileByUsername(input.targetUsername);
+  if (!source || !target || source.id === target.id) return null;
+  const rows = await db.select().from(profileRelationships).where(and(or(and(eq(profileRelationships.sourceProfileId, source.id), eq(profileRelationships.targetProfileId, target.id)), and(eq(profileRelationships.sourceProfileId, target.id), eq(profileRelationships.targetProfileId, source.id))), inArray(profileRelationships.type, ["follow", "connection"])));
+  const follow = rows.find((relationship) => relationship.type === "follow" && relationship.sourceProfileId === source.id) ?? null;
+  const connectionRows = rows.filter((relationship) => relationship.type === "connection");
+  // Connections are mutual. An accepted row in either direction is authoritative and
+  // prevents a misleading new pending request in the opposite direction.
+  const connection = connectionRows.find((relationship) => relationship.status === "accepted") ?? connectionRows.find((relationship) => relationship.sourceProfileId === source.id && relationship.status === "pending") ?? connectionRows.find((relationship) => relationship.targetProfileId === source.id && relationship.status === "pending") ?? null;
+  const connectionDirection = connection ? (connection.sourceProfileId === source.id ? "outgoing" as const : "incoming" as const) : null;
+  return { follow, connection, connectionDirection, sourceProfile: { id: source.id, displayName: source.displayName, username: source.username }, targetProfileId: target.id };
+}
+
 export async function acceptIncomingConnection(userId: number, input: { profileId: number; relationshipId: number }) {
   const db = await getDb();
   if (!db) throw new Error("Database is unavailable");

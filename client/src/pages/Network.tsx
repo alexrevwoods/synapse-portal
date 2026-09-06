@@ -22,7 +22,7 @@ export default function Network() {
   const profile = trpc.profile.builder.useQuery({ profileId }, { enabled: isAuthenticated && Boolean(profileId) });
   const network = trpc.relationships.network.useQuery({ profileId }, { enabled: isAuthenticated && Boolean(profileId) });
   const utils = trpc.useUtils();
-  const accept = trpc.relationships.acceptConnection.useMutation({ onSuccess: () => { toast.success("Connection accepted"); utils.relationships.network.invalidate({ profileId }); }, onError: (error) => toast.error(error.message) });
+  const accept = trpc.relationships.acceptConnection.useMutation({ onSuccess: () => { toast.success("Connection accepted"); utils.relationships.network.invalidate({ profileId }); utils.social.notifications.invalidate({ profileId }); }, onError: (error) => toast.error(error.message) });
 
   if (loading) return <main className="min-h-screen bg-[#080B14]" />;
   if (!isAuthenticated) return <main className="grid min-h-screen place-items-center bg-[#080B14] px-4"><div className="max-w-md rounded-3xl border border-white/10 bg-slate-900/60 p-8 text-center"><UsersRound className="mx-auto text-cyan-100" /><h1 className="font-display mt-5 text-2xl font-semibold text-white">Your intentional Network</h1><p className="mt-3 text-sm leading-6 text-slate-400">Sign in to manage the people and Profiles connected to your identity.</p><button onClick={() => startLogin()} className="primary-button mt-7 w-full">Sign in to continue</button></div></main>;
