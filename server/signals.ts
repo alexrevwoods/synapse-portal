@@ -10,6 +10,7 @@ const signalTypes = ["text", "link", "image", "gallery", "node", "article", "vid
 const visibilityTypes = ["public", "followers", "connections", "subscribers", "private"] as const;
 const imageAspects = ["wide", "square"] as const;
 const imageMimeTypes = ["image/jpeg", "image/png", "image/webp"] as const;
+const mediaLicenses = ["all_rights_reserved", "credit_required", "collaboration_allowed"] as const;
 const mimeExtensions: Record<(typeof imageMimeTypes)[number], string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
 const mediaInput = z.object({ storageUrl: z.string().regex(/^\/manus-storage\//), altText: z.string().trim().max(280).optional(), focalX: z.number().int().min(0).max(100).optional(), focalY: z.number().int().min(0).max(100).optional() });
 
@@ -26,7 +27,7 @@ export const signalsRouter = router({
     if (!image.length || image.length > 8 * 1024 * 1024) throw new TRPCError({ code: "PAYLOAD_TOO_LARGE", message: "Choose an image smaller than 8 MB" });
     let protectedImage: Buffer;
     try {
-      protectedImage = await watermarkSignalImage(image, input.mimeType, profile.displayName, profile.username);
+      protectedImage = await watermarkSignalImage(image, input.mimeType, profile.displayName, profile.username, profile.signalWatermarkStrength);
     } catch {
       throw new TRPCError({ code: "BAD_REQUEST", message: "This image could not be processed. Use a valid JPG, PNG, or WebP file." });
     }
@@ -34,7 +35,7 @@ export const signalsRouter = router({
     const stored = await storagePut(filename, protectedImage, input.mimeType);
     return { url: stored.url };
   }),
-  create: protectedProcedure.input(z.object({ profileId: z.number().int().positive(), type: z.enum(signalTypes), body: z.string().trim().max(5000), visibility: z.enum(visibilityTypes), reminderAt: z.coerce.date().optional(), imageAspect: z.enum(imageAspects).optional(), media: z.array(mediaInput).min(1).max(10).optional() })).mutation(async ({ ctx, input }) => {
+  create: protectedProcedure.input(z.object({ profileId: z.number().int().positive(), type: z.enum(signalTypes), body: z.string().trim().max(5000), visibility: z.enum(visibilityTypes), reminderAt: z.coerce.date().optional(), imageAspect: z.enum(imageAspects).optional(), media: z.array(mediaInput).min(1).max(10).optional(), seoTitle: z.string().trim().max(120).optional(), seoDescription: z.string().trim().max(200).optional(), seoImageUrl: z.string().regex(/^\/manus-storage\//).optional().or(z.literal("")), mediaLicense: z.enum(mediaLicenses).optional() })).mutation(async ({ ctx, input }) => {
     if (input.reminderAt && input.visibility !== "private") throw new TRPCError({ code: "BAD_REQUEST", message: "Reminders can only be attached to private notes" });
     const mediaCount = input.media?.length ?? 0;
     if ((input.type === "image" || input.type === "gallery") && !mediaCount) throw new TRPCError({ code: "BAD_REQUEST", message: "Choose at least one image before publishing" });
@@ -43,7 +44,8 @@ export const signalsRouter = router({
     if (input.type === "gallery" && mediaCount < 2) throw new TRPCError({ code: "BAD_REQUEST", message: "A gallery needs at least two images" });
     if (input.type !== "image" && input.type !== "gallery" && (mediaCount || input.imageAspect)) throw new TRPCError({ code: "BAD_REQUEST", message: "Image details belong only to image Signals" });
     if (input.type !== "image" && input.type !== "gallery" && !input.body) throw new TRPCError({ code: "BAD_REQUEST", message: "Write a Signal before publishing" });
-    const signal = await createOwnedSignal(ctx.user.id, { ...input, imageAspect: mediaCount ? input.imageAspect ?? "wide" : undefined });
+    if (input.seoImageUrl && !input.media?.some((item) => item.storageUrl === input.seoImageUrl)) throw new TRPCError({ code: "BAD_REQUEST", message: "Choose a featured image from this Signal" });
+    const signal = await createOwnedSignal(ctx.user.id, { ...input, seoTitle: input.seoTitle || undefined, seoDescription: input.seoDescription || undefined, seoImageUrl: input.seoImageUrl || undefined, imageAspect: mediaCount ? input.imageAspect ?? "wide" : undefined });
     if (!signal) throw new TRPCError({ code: "NOT_FOUND", message: "Profile not found" });
     return signal;
   }),
@@ -52,7 +54,7 @@ export const signalsRouter = router({
     if (!signal) throw new TRPCError({ code: "NOT_FOUND", message: "Private note not found" });
     return signal;
   }),
-  update: protectedProcedure.input(z.object({ profileId: z.number().int().positive(), signalId: z.number().int().positive(), body: z.string().trim().max(5000), seoTitle: z.string().trim().max(120).optional(), seoDescription: z.string().trim().max(200).optional(), seoImageUrl: z.string().regex(/^\/manus-storage\//).optional().or(z.literal("")) })).mutation(async ({ ctx, input }) => {
+  update: protectedProcedure.input(z.object({ profileId: z.number().int().positive(), signalId: z.number().int().positive(), body: z.string().trim().max(5000), seoTitle: z.string().trim().max(120).optional(), seoDescription: z.string().trim().max(200).optional(), seoImageUrl: z.string().regex(/^\/manus-storage\//).optional().or(z.literal("")), mediaLicense: z.enum(mediaLicenses).optional() })).mutation(async ({ ctx, input }) => {
     try {
       const signal = await updateOwnedSignal(ctx.user.id, { ...input, seoTitle: input.seoTitle || null, seoDescription: input.seoDescription || null, seoImageUrl: input.seoImageUrl || null });
       if (!signal) throw new TRPCError({ code: "NOT_FOUND", message: "Signal not found" });

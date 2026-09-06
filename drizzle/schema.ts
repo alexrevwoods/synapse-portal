@@ -47,6 +47,8 @@ export const memberships = mysqlTable(
 export const profileType = mysqlEnum("profileType", ["personal", "creator", "business", "organization", "project"]);
 export const nodeType = mysqlEnum("nodeType", ["identity", "social", "web", "content", "conversion", "portal", "event", "product", "booking", "team"]);
 export const signalVisibility = mysqlEnum("signalVisibility", ["public", "followers", "connections", "subscribers", "private"]);
+export const signalMediaLicense = mysqlEnum("signalMediaLicense", ["all_rights_reserved", "credit_required", "collaboration_allowed"]);
+export const signalWatermarkStrength = mysqlEnum("signalWatermarkStrength", ["standard", "strong", "maximum"]);
 export const relationshipType = mysqlEnum("relationshipType", ["follow", "connection", "collaborator", "associated"]);
 export const relationshipStatus = mysqlEnum("relationshipStatus", ["pending", "accepted", "declined", "blocked"]);
 export const reactionType = mysqlEnum("reactionType", ["spark"]);
@@ -72,6 +74,7 @@ export const profiles = mysqlTable(
     mapAccentColor: varchar("mapAccentColor", { length: 12 }).default("#00D8FF").notNull(),
     mapIcon: varchar("mapIcon", { length: 24 }).default("spark").notNull(),
     mapAutoFocusNext: boolean("mapAutoFocusNext").default(false).notNull(),
+    signalWatermarkStrength: signalWatermarkStrength.default("strong").notNull(),
     mapPositionX: int("mapPositionX").default(50).notNull(),
     mapPositionY: int("mapPositionY").default(50).notNull(),
     customDomain: varchar("customDomain", { length: 255 }),
@@ -197,6 +200,7 @@ export const signals = mysqlTable(
     seoTitle: varchar("seoTitle", { length: 120 }),
     seoDescription: varchar("seoDescription", { length: 200 }),
     seoImageUrl: text("seoImageUrl"),
+    mediaLicense: signalMediaLicense.default("all_rights_reserved").notNull(),
     isPinned: boolean("isPinned").default(false).notNull(),
     reminderAt: timestamp("reminderAt"),
     publishedAt: timestamp("publishedAt"),

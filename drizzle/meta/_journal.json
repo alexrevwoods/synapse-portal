@@ -134,6 +134,13 @@
       "when": 1788713223523,
       "tag": "0018_omniscient_grim_reaper",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "5",
+      "when": 1788719348402,
+      "tag": "0019_bouncy_elektra",
+      "breakpoints": true
     }
   ]
 }

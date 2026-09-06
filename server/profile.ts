@@ -23,6 +23,7 @@ const profileTypes = ["personal", "creator", "business", "organization", "projec
 export const nodeTypes = ["identity", "social", "web", "content", "conversion", "portal", "event", "product", "booking", "team"] as const;
 const portalRelationshipTypes = ["related", "brand", "team", "project", "community", "location"] as const;
 const mapIcons = ["spark", "orbit", "bolt", "gem", "leaf"] as const;
+const watermarkStrengths = ["standard", "strong", "maximum"] as const;
 
 export function normalizeUsername(value: string) {
   return value.trim().replace(/^@/, "").toLowerCase();
@@ -102,6 +103,7 @@ export const profileRouter = router({
         mapAccentColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
         mapIcon: z.enum(mapIcons).optional(),
         mapAutoFocusNext: z.boolean().optional(),
+        signalWatermarkStrength: z.enum(watermarkStrengths).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {

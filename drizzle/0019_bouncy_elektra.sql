@@ -1,0 +1,2 @@
+ALTER TABLE `profiles` ADD `signalWatermarkStrength` enum('standard','strong','maximum') DEFAULT 'strong' NOT NULL;--> statement-breakpoint
+ALTER TABLE `signals` ADD `signalMediaLicense` enum('all_rights_reserved','credit_required','collaboration_allowed') DEFAULT 'all_rights_reserved' NOT NULL;

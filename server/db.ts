@@ -140,7 +140,7 @@ export async function createProfileForUser(userId: number, input: { username: st
   return getOwnedProfile(userId, profileId);
 }
 
-export async function updateOwnedProfile(userId: number, profileId: number, input: { displayName?: string; bio?: string; location?: string; websiteUrl?: string; portalTheme?: string; avatarUrl?: string; brandLogoUrl?: string; brandPrimaryColor?: string; brandSecondaryColor?: string; mapAccentColor?: string; mapIcon?: string; mapAutoFocusNext?: boolean; customDomain?: string }) {
+export async function updateOwnedProfile(userId: number, profileId: number, input: { displayName?: string; bio?: string; location?: string; websiteUrl?: string; portalTheme?: string; avatarUrl?: string; brandLogoUrl?: string; brandPrimaryColor?: string; brandSecondaryColor?: string; mapAccentColor?: string; mapIcon?: string; mapAutoFocusNext?: boolean; signalWatermarkStrength?: "standard" | "strong" | "maximum"; customDomain?: string }) {
   const db = await getDb();
   if (!db) throw new Error("Database is unavailable");
   await db.update(profiles).set(input).where(and(eq(profiles.id, profileId), eq(profiles.ownerUserId, userId)));
@@ -346,7 +346,7 @@ async function getMediaForSignals(db: NonNullable<Awaited<ReturnType<typeof getD
   }, new Map<number, Array<typeof signalMedia.$inferSelect>>());
 }
 
-export async function createOwnedSignal(userId: number, input: { profileId: number; type: "text" | "link" | "image" | "gallery" | "node" | "article" | "video" | "audio"; body: string; visibility: "public" | "followers" | "connections" | "subscribers" | "private"; isPinned?: boolean; reminderAt?: Date; imageAspect?: "wide" | "square"; media?: MediaInput[] }) {
+export async function createOwnedSignal(userId: number, input: { profileId: number; type: "text" | "link" | "image" | "gallery" | "node" | "article" | "video" | "audio"; body: string; visibility: "public" | "followers" | "connections" | "subscribers" | "private"; isPinned?: boolean; reminderAt?: Date; imageAspect?: "wide" | "square"; seoTitle?: string; seoDescription?: string; seoImageUrl?: string; mediaLicense?: "all_rights_reserved" | "credit_required" | "collaboration_allowed"; media?: MediaInput[] }) {
   const db = await getDb();
   if (!db) throw new Error("Database is unavailable");
   const profile = await getOwnedProfile(userId, input.profileId);
@@ -637,7 +637,7 @@ export async function getPublicSitemapEntries() {
 /** Updates owner-controlled Signal content and technical metadata without exposing private drafts. */
 export async function updateOwnedSignal(
   userId: number,
-  input: { profileId: number; signalId: number; body: string; seoTitle?: string | null; seoDescription?: string | null; seoImageUrl?: string | null },
+  input: { profileId: number; signalId: number; body: string; seoTitle?: string | null; seoDescription?: string | null; seoImageUrl?: string | null; mediaLicense?: "all_rights_reserved" | "credit_required" | "collaboration_allowed" },
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database is unavailable");
@@ -664,6 +664,7 @@ export async function updateOwnedSignal(
     seoTitle: input.seoTitle?.trim() || null,
     seoDescription: input.seoDescription?.trim() || null,
     seoImageUrl: input.seoImageUrl || null,
+    ...(input.mediaLicense ? { mediaLicense: input.mediaLicense } : {}),
   }).where(eq(signals.id, input.signalId));
   const updated = await db.select().from(signals).where(eq(signals.id, input.signalId)).limit(1);
   const media = await getMediaForSignals(db, [input.signalId]);
