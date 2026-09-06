@@ -101,3 +101,9 @@ The release uses **WhoAreWe** spelling exactly, presents **Where Identity Meets 
 - [x] Add All, Following, Connections, and My Signals filters to Timeline.
 - [x] Show a short public relationship activity history on each Portal.
 - [x] Validate responsive rendering, TypeScript, automated tests, and production build.
+
+## Timeline Header Navigation
+
+- [x] Replace the generic **My Space** header action with **Edit My Portals**.
+- [x] Add a prominent **View my Portal** action for the currently selected viewing identity.
+- [x] Validate the responsive Timeline header and production build.
