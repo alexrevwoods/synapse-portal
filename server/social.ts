@@ -11,6 +11,7 @@ import {
   markNotificationsRead,
   toggleSignalReaction,
 } from "./db";
+import { INTEREST_KEYS } from "../shared/interests";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 
 export const socialRouter = router({
@@ -21,11 +22,11 @@ export const socialRouter = router({
   }),
 
   discover: publicProcedure
-    .input(z.object({ query: z.string().trim().max(48).optional(), profileType: z.enum(["all", "personal", "creator", "business", "organization", "project"]).optional(), currentProfileId: z.number().int().positive().optional() }))
+    .input(z.object({ query: z.string().trim().max(48).optional(), profileType: z.enum(["all", "personal", "creator", "business", "organization", "project"]).optional(), interestKey: z.enum(INTEREST_KEYS).optional(), currentProfileId: z.number().int().positive().optional() }))
     .query(({ input }) => getDiscoverablePortals(input)),
 
   discoverFeed: publicProcedure
-    .input(z.object({ query: z.string().trim().max(48).optional(), profileType: z.enum(["all", "personal", "creator", "business", "organization", "project"]).optional(), currentProfileId: z.number().int().positive().optional() }))
+    .input(z.object({ query: z.string().trim().max(48).optional(), profileType: z.enum(["all", "personal", "creator", "business", "organization", "project"]).optional(), interestKey: z.enum(INTEREST_KEYS).optional(), currentProfileId: z.number().int().positive().optional() }))
     .query(({ input }) => getDiscoveryFeed(input)),
 
   publicFeed: publicProcedure

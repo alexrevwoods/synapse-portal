@@ -34,7 +34,7 @@ const plans = [
 ];
 
 export default function Home() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
   const [, navigate] = useLocation();
   const [guestSkin, setGuestSkin] = useState(() => getGuestSkin());
   const demo = trpc.platform.demo.useQuery();
@@ -45,10 +45,15 @@ export default function Home() {
   useEffect(() => {
     if (!isAuthenticated) return;
     const nextPath = window.sessionStorage.getItem("synapse-post-login");
-    if (!nextPath) return;
-    window.sessionStorage.removeItem("synapse-post-login");
-    navigate(nextPath);
+    if (nextPath) {
+      window.sessionStorage.removeItem("synapse-post-login");
+      navigate(nextPath);
+      return;
+    }
+    navigate("/discover");
   }, [isAuthenticated, navigate]);
+
+  if (loading || isAuthenticated) return <main className="min-h-screen bg-[#070b14]" />;
 
   return (
     <main className="page-shell min-h-screen bg-[#070b14]">

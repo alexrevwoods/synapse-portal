@@ -368,6 +368,28 @@ export async function getNetworkForProfile(userId: number, profileId: number) {
   });
 }
 
+/** Exposes only accepted, public relationships for a published Portal. */
+export async function getPublicNetworkSummary(profileId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const relationships = await db.select().from(profileRelationships).where(and(or(eq(profileRelationships.sourceProfileId, profileId), eq(profileRelationships.targetProfileId, profileId)), eq(profileRelationships.status, "accepted"), or(eq(profileRelationships.type, "follow"), eq(profileRelationships.type, "connection")))).orderBy(desc(profileRelationships.updatedAt)).limit(30);
+  const relatedIds = Array.from(new Set(relationships.map((relationship) => relationship.sourceProfileId === profileId ? relationship.targetProfileId : relationship.sourceProfileId)));
+  if (!relatedIds.length) return [];
+  const relatedProfiles = await db.select().from(profiles).where(and(inArray(profiles.id, relatedIds), eq(profiles.isPublished, true)));
+  const profileMap = new Map(relatedProfiles.map((related) => [related.id, related]));
+  const visibleRelationships = relationships.map((relationship) => {
+    const relatedId = relationship.sourceProfileId === profileId ? relationship.targetProfileId : relationship.sourceProfileId;
+    const related = profileMap.get(relatedId);
+    return related ? { type: relationship.type, profile: { id: related.id, username: related.username, displayName: related.displayName, profileType: related.type, avatarUrl: related.avatarUrl } } : null;
+  }).filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
+  const visibleProfileIds = new Set<number>();
+  return visibleRelationships.filter((entry) => {
+    if (visibleProfileIds.has(entry.profile.id)) return false;
+    visibleProfileIds.add(entry.profile.id);
+    return true;
+  });
+}
+
 /** Returns only public identity data, keeping unpublished and private nodes private by construction. */
 export async function getPublicPortalByUsername(username: string) {
   const db = await getDb();
@@ -378,14 +400,15 @@ export async function getPublicPortalByUsername(username: string) {
   const plan = (membershipRows[0]?.plan || "core") as MembershipPlan;
   const selectedSkin = normalizeSkinId(profile.portalTheme);
   const resolvedSkin = canUseSkin(plan, selectedSkin) ? selectedSkin : "signal";
-  const [nodes, connections, recentSignals, badges] = await Promise.all([
+  const [nodes, connections, recentSignals, badges, network] = await Promise.all([
     db.select().from(profileNodes).where(and(eq(profileNodes.profileId, profile.id), eq(profileNodes.isPublic, true))).orderBy(asc(profileNodes.sortOrder)),
     db.select().from(nodeConnections).where(eq(nodeConnections.profileId, profile.id)),
     db.select().from(signals).where(and(eq(signals.profileId, profile.id), eq(signals.visibility, "public"))).orderBy(desc(signals.publishedAt)).limit(20),
     getPublicProfileBadges(profile),
+    getPublicNetworkSummary(profile.id),
   ]);
   const publicNodeIds = new Set(nodes.map((node) => node.id));
-  return { profile: { ...profile, portalTheme: resolvedSkin }, nodes, connections: connections.filter((connection) => publicNodeIds.has(connection.fromNodeId) && publicNodeIds.has(connection.toNodeId)), recentSignals, badges };
+  return { profile: { ...profile, portalTheme: resolvedSkin }, nodes, connections: connections.filter((connection) => publicNodeIds.has(connection.fromNodeId) && publicNodeIds.has(connection.toNodeId)), recentSignals, badges, network };
 }
 
 
@@ -433,7 +456,7 @@ export async function getPublicSignalFeed(username: string, currentProfileId?: n
 
 type DiscoveryType = "all" | "personal" | "creator" | "business" | "organization" | "project";
 
-export async function getDiscoverablePortals(input: { query?: string; profileType?: DiscoveryType }) {
+export async function getDiscoverablePortals(input: { query?: string; profileType?: DiscoveryType; interestKey?: string }) {
   const db = await getDb();
   if (!db) return [];
   const query = input.query?.trim().toLowerCase();
@@ -441,7 +464,10 @@ export async function getDiscoverablePortals(input: { query?: string; profileTyp
   if (input.profileType && input.profileType !== "all") conditions.push(eq(profiles.type, input.profileType));
   if (query) conditions.push(or(like(profiles.username, `%${query}%`), like(profiles.displayName, `%${query}%`), like(profiles.location, `%${query}%`))!);
   const rows = await db.select().from(profiles).where(and(...conditions)).orderBy(desc(profiles.updatedAt)).limit(60);
-  return Promise.all(rows.map(async (profile) => ({
+  const matchingInterestRows = input.interestKey ? await db.select({ profileId: profileInterests.profileId }).from(profileInterests).where(eq(profileInterests.interestKey, input.interestKey)) : [];
+  const matchingProfileIds = new Set(matchingInterestRows.map((row) => row.profileId));
+  const filteredRows = input.interestKey ? rows.filter((profile) => matchingProfileIds.has(profile.id)) : rows;
+  return Promise.all(filteredRows.map(async (profile) => ({
     id: profile.id,
     username: profile.username,
     displayName: profile.displayName,
@@ -454,7 +480,7 @@ export async function getDiscoverablePortals(input: { query?: string; profileTyp
   })));
 }
 
-export async function getDiscoveryFeed(input: { query?: string; profileType?: DiscoveryType; currentProfileId?: number }) {
+export async function getDiscoveryFeed(input: { query?: string; profileType?: DiscoveryType; currentProfileId?: number; interestKey?: string }) {
   const db = await getDb();
   if (!db) return [];
   const query = input.query?.trim().toLowerCase();
@@ -462,10 +488,13 @@ export async function getDiscoveryFeed(input: { query?: string; profileType?: Di
   if (input.profileType && input.profileType !== "all") conditions.push(eq(profiles.type, input.profileType));
   if (query) conditions.push(or(like(profiles.username, `%${query}%`), like(profiles.displayName, `%${query}%`), like(signals.body, `%${query}%`))!);
   const rows = await db.select({ signal: signals, profile: profiles }).from(signals).innerJoin(profiles, eq(signals.profileId, profiles.id)).where(and(...conditions)).orderBy(desc(signals.publishedAt)).limit(60);
-  if (!input.currentProfileId) return enrichSignals(rows);
+  const matchingInterestRows = input.interestKey ? await db.select({ profileId: profileInterests.profileId }).from(profileInterests).where(eq(profileInterests.interestKey, input.interestKey)) : [];
+  const matchingProfileIds = new Set(matchingInterestRows.map((row) => row.profileId));
+  const interestFilteredRows = input.interestKey ? rows.filter((row) => matchingProfileIds.has(row.profile.id)) : rows;
+  if (!input.currentProfileId) return enrichSignals(interestFilteredRows);
   const blockRows = await db.select().from(blocks).where(or(eq(blocks.sourceProfileId, input.currentProfileId), eq(blocks.targetProfileId, input.currentProfileId)));
   const blockedProfileIds = new Set(blockRows.map((block) => block.sourceProfileId === input.currentProfileId ? block.targetProfileId : block.sourceProfileId));
-  return enrichSignals(rows.filter((row) => !blockedProfileIds.has(row.profile.id)), input.currentProfileId);
+  return enrichSignals(interestFilteredRows.filter((row) => !blockedProfileIds.has(row.profile.id)), input.currentProfileId);
 }
 
 export async function getFollowSuggestions(userId: number, profileId: number) {

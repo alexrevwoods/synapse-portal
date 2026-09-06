@@ -9,6 +9,7 @@ import Account from "./pages/Account";
 import Access from "./pages/Access";
 import BrandStudio from "./pages/BrandStudio";
 import Discover from "./pages/Discover";
+import Feed from "./pages/Feed";
 import Home from "./pages/Home";
 import Insights from "./pages/Insights";
 import Join from "./pages/Join";
@@ -21,6 +22,7 @@ import PublicPortal from "./pages/PublicPortal";
 import Signals from "./pages/Signals";
 import SkinStudio from "./pages/SkinStudio";
 import Timeline from "./pages/Timeline";
+import TopicDiscovery from "./pages/TopicDiscovery";
 
 function Router() {
   return (
@@ -29,6 +31,8 @@ function Router() {
       <Route path="/account" component={Account} />
       <Route path="/access" component={Access} />
       <Route path="/discover" component={Discover} />
+      <Route path="/discover/:interestKey" component={TopicDiscovery} />
+      <Route path="/feed" component={Feed} />
       <Route path="/skins" component={SkinStudio} />
       <Route path="/brand/:profileId" component={BrandStudio} />
       <Route path="/join" component={Join} />
