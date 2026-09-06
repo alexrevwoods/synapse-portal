@@ -8,6 +8,7 @@ import {
   getOwnedProfile,
   getProfileInterestKeys,
   getProfilesForUser,
+  linkOwnedPortal,
   saveOwnedProfileInterests,
   setProfilePublished,
   updateOwnedProfile,
@@ -23,6 +24,12 @@ export function normalizeUsername(value: string) {
   return value.trim().replace(/^@/, "").toLowerCase();
 }
 
+/** During free early access, an Account can build a small connected Portal network. */
+export function portalAllowance(membership?: { plan: "core" | "pulse" | "nexus"; status: "free" | "trialing" | "active" | "canceled" } | null) {
+  if (!membership || membership.status === "free") return 3;
+  return membership.plan === "core" ? 3 : membership.plan === "pulse" ? 6 : 12;
+}
+
 const createProfileInput = z.object({
   username: z.string().trim().min(2).max(48).regex(/^[a-zA-Z0-9_]+$/, "Use letters, numbers, and underscores only").transform(normalizeUsername),
   displayName: z.string().trim().min(2).max(120),
@@ -34,6 +41,12 @@ const createProfileInput = z.object({
 
 export const profileRouter = router({
   my: protectedProcedure.query(({ ctx }) => getProfilesForUser(ctx.user.id)),
+
+  capacity: protectedProcedure.query(async ({ ctx }) => {
+    const [membership, existingProfiles] = await Promise.all([getAccountMembership(ctx.user.id), getProfilesForUser(ctx.user.id)]);
+    const allowance = portalAllowance(membership);
+    return { used: existingProfiles.length, allowance, canCreate: existingProfiles.length < allowance, status: membership?.status || "free" };
+  }),
 
   interests: protectedProcedure.input(z.object({ profileId: z.number().int().positive() })).query(async ({ ctx, input }) => {
     const profile = await getOwnedProfile(ctx.user.id, input.profileId);
@@ -56,9 +69,9 @@ export const profileRouter = router({
   create: protectedProcedure.input(createProfileInput).mutation(async ({ ctx, input }) => {
     try {
       const [membership, existingProfiles] = await Promise.all([getAccountMembership(ctx.user.id), getProfilesForUser(ctx.user.id)]);
-      const profileAllowance = membership?.plan === "core" ? 1 : membership?.plan === "pulse" ? 3 : 5;
-      if (existingProfiles.length >= profileAllowance) {
-        throw new TRPCError({ code: "FORBIDDEN", message: `Your ${membership?.plan || "current"} membership includes up to ${profileAllowance} ${profileAllowance === 1 ? "Profile" : "Profiles"}.` });
+      const allowance = portalAllowance(membership);
+      if (existingProfiles.length >= allowance) {
+        throw new TRPCError({ code: "FORBIDDEN", message: `Your account currently includes up to ${allowance} Portals.` });
       }
       const { interests, ...profileInput } = input;
       const profile = await createProfileForUser(ctx.user.id, profileInput);
@@ -122,5 +135,18 @@ export const profileRouter = router({
       const node = await createOwnedNode(ctx.user.id, { ...input, targetUrl: input.targetUrl || undefined });
       if (!node) throw new TRPCError({ code: "NOT_FOUND", message: "Profile not found" });
       return node;
+    }),
+
+  linkPortal: protectedProcedure
+    .input(z.object({ profileId: z.number().int().positive(), targetProfileId: z.number().int().positive(), positionX: z.number().int().min(5).max(95).default(82), positionY: z.number().int().min(8).max(92).default(28) }))
+    .mutation(async ({ ctx, input }) => {
+      try {
+        const node = await linkOwnedPortal(ctx.user.id, input);
+        if (!node) throw new TRPCError({ code: "NOT_FOUND", message: "Both Portals must belong to your account" });
+        return node;
+      } catch (error) {
+        if (error instanceof TRPCError) throw error;
+        throw new TRPCError({ code: "BAD_REQUEST", message: error instanceof Error ? error.message : "The Portal link could not be created" });
+      }
     }),
 });

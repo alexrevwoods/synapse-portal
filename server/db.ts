@@ -173,12 +173,13 @@ export async function getBuilderProfile(userId: number, profileId: number) {
   if (!db) return null;
   const profile = await getOwnedProfile(userId, profileId);
   if (!profile) return null;
-  const [nodes, connections, recentSignals, badgeState] = await Promise.all([
+  const [rawNodes, connections, recentSignals, badgeState] = await Promise.all([
     db.select().from(profileNodes).where(eq(profileNodes.profileId, profileId)).orderBy(asc(profileNodes.sortOrder)),
     db.select().from(nodeConnections).where(eq(nodeConnections.profileId, profileId)),
     db.select().from(signals).where(eq(signals.profileId, profileId)).orderBy(desc(signals.publishedAt)).limit(10),
     getProfileBadgeState(userId, profileId),
   ]);
+  const nodes = await enrichPortalNodes(rawNodes, false);
   return { profile, nodes, connections, recentSignals, badgeState };
 }
 
@@ -200,6 +201,43 @@ export async function createOwnedNode(userId: number, input: { profileId: number
   const result = await db.insert(profileNodes).values({ ...input, sortOrder: existingNodes.length });
   const node = await db.select().from(profileNodes).where(eq(profileNodes.id, Number(result[0].insertId))).limit(1);
   return node[0] ?? null;
+}
+
+/** Creates a navigable Portal node that only an owner can point at another Portal they own. */
+export async function linkOwnedPortal(userId: number, input: { profileId: number; targetProfileId: number; positionX: number; positionY: number }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is unavailable");
+  if (input.profileId === input.targetProfileId) throw new Error("A Portal cannot link to itself");
+  const [source, target] = await Promise.all([getOwnedProfile(userId, input.profileId), getOwnedProfile(userId, input.targetProfileId)]);
+  if (!source || !target) return null;
+  const existing = await db.select().from(profileNodes).where(and(eq(profileNodes.profileId, input.profileId), eq(profileNodes.type, "portal"), eq(profileNodes.internalProfileId, input.targetProfileId))).limit(1);
+  if (existing[0]) return existing[0];
+  const count = await db.select({ id: profileNodes.id }).from(profileNodes).where(eq(profileNodes.profileId, input.profileId));
+  const result = await db.insert(profileNodes).values({
+    profileId: input.profileId,
+    type: "portal",
+    title: target.displayName,
+    subtitle: "Connected Portal",
+    description: `Continue exploring ${target.displayName} and its connected destinations.`,
+    targetUrl: `/${target.username}`,
+    internalProfileId: target.id,
+    positionX: input.positionX,
+    positionY: input.positionY,
+    sortOrder: count.length,
+  });
+  const linked = await db.select().from(profileNodes).where(eq(profileNodes.id, Number(result[0].insertId))).limit(1);
+  return linked[0] ?? null;
+}
+
+async function enrichPortalNodes(nodes: Array<typeof profileNodes.$inferSelect>, publishedOnly: boolean) {
+  const db = await getDb();
+  if (!db) return nodes.map((node) => ({ ...node, linkedPortal: null }));
+  const ids = Array.from(new Set(nodes.map((node) => node.internalProfileId).filter((id): id is number => Boolean(id))));
+  if (!ids.length) return nodes.map((node) => ({ ...node, linkedPortal: null }));
+  const where = publishedOnly ? and(inArray(profiles.id, ids), eq(profiles.isPublished, true)) : inArray(profiles.id, ids);
+  const linked = await db.select({ id: profiles.id, username: profiles.username, displayName: profiles.displayName, type: profiles.type, bio: profiles.bio, location: profiles.location, avatarUrl: profiles.avatarUrl, isPublished: profiles.isPublished }).from(profiles).where(where);
+  const linkedById = new Map(linked.map((profile) => [profile.id, profile]));
+  return nodes.map((node) => ({ ...node, linkedPortal: node.internalProfileId ? linkedById.get(node.internalProfileId) ?? null : null }));
 }
 
 export async function updateOwnedNode(userId: number, input: { profileId: number; nodeId: number; title?: string; subtitle?: string; description?: string; targetUrl?: string; positionX?: number; positionY?: number; isPublic?: boolean; accentColor?: string }) {
@@ -400,13 +438,31 @@ export async function getPublicPortalByUsername(username: string) {
   const plan = (membershipRows[0]?.plan || "core") as MembershipPlan;
   const selectedSkin = normalizeSkinId(profile.portalTheme);
   const resolvedSkin = canUseSkin(plan, selectedSkin) ? selectedSkin : "signal";
-  const [nodes, connections, recentSignals, badges, network] = await Promise.all([
+  const [rawNodes, connections, recentSignals, badges, network] = await Promise.all([
     db.select().from(profileNodes).where(and(eq(profileNodes.profileId, profile.id), eq(profileNodes.isPublic, true))).orderBy(asc(profileNodes.sortOrder)),
     db.select().from(nodeConnections).where(eq(nodeConnections.profileId, profile.id)),
     db.select().from(signals).where(and(eq(signals.profileId, profile.id), eq(signals.visibility, "public"))).orderBy(desc(signals.publishedAt)).limit(20),
     getPublicProfileBadges(profile),
     getPublicNetworkSummary(profile.id),
   ]);
+  const enrichedNodes = (await enrichPortalNodes(rawNodes, true)).filter((node) => node.type !== "portal" || node.linkedPortal);
+  const linkedPortalIds = Array.from(new Set(enrichedNodes.map((node) => node.linkedPortal?.id).filter((id): id is number => Boolean(id))));
+  const [linkedNodes, linkedConnections] = linkedPortalIds.length
+    ? await Promise.all([
+        db.select().from(profileNodes).where(and(inArray(profileNodes.profileId, linkedPortalIds), eq(profileNodes.isPublic, true))).orderBy(asc(profileNodes.sortOrder)),
+        db.select().from(nodeConnections).where(inArray(nodeConnections.profileId, linkedPortalIds)),
+      ])
+    : [[], []] as const;
+  const linkedNodesByProfile = new Map<number, Array<typeof profileNodes.$inferSelect>>();
+  linkedNodes.forEach((node) => linkedNodesByProfile.set(node.profileId, [...(linkedNodesByProfile.get(node.profileId) ?? []), node]));
+  const linkedConnectionsByProfile = new Map<number, Array<typeof nodeConnections.$inferSelect>>();
+  linkedConnections.forEach((connection) => linkedConnectionsByProfile.set(connection.profileId, [...(linkedConnectionsByProfile.get(connection.profileId) ?? []), connection]));
+  const nodes = enrichedNodes.map((node) => {
+    const linkedPortal = node.linkedPortal
+      ? { ...node.linkedPortal, nodes: linkedNodesByProfile.get(node.linkedPortal.id) ?? [], connections: linkedConnectionsByProfile.get(node.linkedPortal.id) ?? [] }
+      : null;
+    return { ...node, linkedPortal };
+  });
   const publicNodeIds = new Set(nodes.map((node) => node.id));
   return { profile: { ...profile, portalTheme: resolvedSkin }, nodes, connections: connections.filter((connection) => publicNodeIds.has(connection.fromNodeId) && publicNodeIds.has(connection.toNodeId)), recentSignals, badges, network };
 }

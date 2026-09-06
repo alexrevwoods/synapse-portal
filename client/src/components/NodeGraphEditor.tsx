@@ -3,7 +3,7 @@ import { Crosshair, GitFork, Link2, MapPin, Minus, Move, RotateCcw, Save, Trash2
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 
-type Node = { id: number; type: "identity" | "social" | "web" | "content" | "conversion" | "portal" | "event" | "product" | "booking" | "team"; title: string; subtitle: string | null; description: string | null; targetUrl: string | null; positionX: number; positionY: number; accentColor: string | null; isPublic: boolean; };
+type Node = { id: number; type: "identity" | "social" | "web" | "content" | "conversion" | "portal" | "event" | "product" | "booking" | "team"; title: string; subtitle: string | null; description: string | null; targetUrl: string | null; internalProfileId: number | null; positionX: number; positionY: number; accentColor: string | null; isPublic: boolean; linkedPortal?: { username: string; displayName: string; isPublished: boolean } | null; };
 type Connection = { id: number; fromNodeId: number; toNodeId: number; label: string | null };
 const clamp = (value: number, minimum: number, maximum: number) => Math.min(maximum, Math.max(minimum, Math.round(value)));
 const MIN_ZOOM = 0.45;

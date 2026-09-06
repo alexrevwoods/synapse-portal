@@ -3,6 +3,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
+import AppSplash from "./components/AppSplash";
 import PlatformSkinInitializer from "./components/PlatformSkinInitializer";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Account from "./pages/Account";
@@ -56,10 +57,12 @@ function App() {
     <ErrorBoundary>
       <ThemeProvider defaultTheme="dark">
         <TooltipProvider>
-          <PlatformSkinInitializer>
-            <Toaster theme="dark" />
-            <Router />
-          </PlatformSkinInitializer>
+          <AppSplash>
+            <PlatformSkinInitializer>
+              <Toaster theme="dark" />
+              <Router />
+            </PlatformSkinInitializer>
+          </AppSplash>
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>

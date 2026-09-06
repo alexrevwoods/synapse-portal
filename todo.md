@@ -29,3 +29,14 @@ The release uses **WhoAreWe** spelling exactly, presents **Where Identity Meets 
 - [x] Import the supplied WhoAreWe token stylesheet and align global aliases to the approved palette.
 - [x] Configure favicon, PWA manifest, Apple touch icon, OpenGraph, and Twitter metadata with official assets.
 - [x] Validate the desktop and mobile presentation, asset URLs, TypeScript, test suite, and production build.
+
+## Connected Portal Network Expansion
+
+- [x] Add a lightweight startup splash using the official WhoAreWe app icon and reduced-motion-safe transition.
+- [x] Expand free early-access accounts to **three Portals**, while retaining tiered capacity for active paid memberships.
+- [x] Route **New identity** actions from My Space and the Portal Builder to a clear, three-step additional-Portal flow.
+- [x] Add a capacity endpoint and show the relevant account capacity before creation; block cleanly when a limit is reached.
+- [x] Add an owner-only **Link Portal** action in the Portal Builder, using a `portal` Node attached to the selected owned Portal.
+- [x] Enrich public Portal data with the linked Portal's public Nodes and connection lines.
+- [x] Expand the live public map into a multi-region canvas: zoom and pan remain available, side controls shift to connected Portal regions, and connected destination cards open the linked Portal.
+- [x] Validate mobile onboarding, My Space, Builder, and public Portal map layouts, plus TypeScript, tests, and production build.
