@@ -50,6 +50,7 @@ export const signalVisibility = mysqlEnum("signalVisibility", ["public", "follow
 export const relationshipType = mysqlEnum("relationshipType", ["follow", "connection", "collaborator", "associated"]);
 export const relationshipStatus = mysqlEnum("relationshipStatus", ["pending", "accepted", "declined", "blocked"]);
 export const reactionType = mysqlEnum("reactionType", ["spark"]);
+export const commentReactionType = mysqlEnum("commentReactionType", ["spark", "heart", "insight", "celebrate"]);
 export const notificationType = mysqlEnum("notificationType", ["follow", "connection_request", "connection_accepted", "signal_reaction", "signal_comment", "signal_reply"]);
 export const portalRelationshipType = mysqlEnum("portalRelationshipType", ["related", "brand", "team", "project", "community", "location"]);
 
@@ -68,6 +69,10 @@ export const profiles = mysqlTable(
     brandLogoUrl: varchar("brandLogoUrl", { length: 2048 }),
     brandPrimaryColor: varchar("brandPrimaryColor", { length: 12 }),
     brandSecondaryColor: varchar("brandSecondaryColor", { length: 12 }),
+    mapAccentColor: varchar("mapAccentColor", { length: 12 }).default("#00D8FF").notNull(),
+    mapIcon: varchar("mapIcon", { length: 24 }).default("spark").notNull(),
+    mapPositionX: int("mapPositionX").default(50).notNull(),
+    mapPositionY: int("mapPositionY").default(50).notNull(),
     customDomain: varchar("customDomain", { length: 255 }),
     portalTheme: varchar("portalTheme", { length: 48 }).default("atlas").notNull(),
     isPublished: boolean("isPublished").default(false).notNull(),
@@ -230,6 +235,22 @@ export const signalReactions = mysqlTable(
     signalIndex: index("signal_reactions_signal_idx").on(table.signalId),
     profileIndex: index("signal_reactions_profile_idx").on(table.profileId),
     uniqueReaction: uniqueIndex("signal_reactions_unique").on(table.signalId, table.profileId, table.type),
+  }),
+);
+
+export const commentReactions = mysqlTable(
+  "comment_reactions",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    commentId: int("commentId").notNull(),
+    profileId: int("profileId").notNull(),
+    type: commentReactionType.default("spark").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    commentIndex: index("comment_reactions_comment_idx").on(table.commentId),
+    profileIndex: index("comment_reactions_profile_idx").on(table.profileId),
+    uniqueReaction: uniqueIndex("comment_reactions_unique").on(table.commentId, table.profileId, table.type),
   }),
 );
 

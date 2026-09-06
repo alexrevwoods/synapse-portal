@@ -11,6 +11,7 @@ import {
   getTimelineForProfile,
   getUnreadCommentCount,
   markNotificationsRead,
+  toggleCommentReaction,
   toggleSignalReaction,
   updateOwnedSignalComment,
 } from "./db";
@@ -45,6 +46,12 @@ export const socialRouter = router({
   toggleReaction: protectedProcedure.input(z.object({ profileId: z.number().int().positive(), signalId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
     const result = await toggleSignalReaction(ctx.user.id, input);
     if (!result) throw new TRPCError({ code: "NOT_FOUND", message: "Signal or active Profile not found" });
+    return result;
+  }),
+
+  toggleCommentReaction: protectedProcedure.input(z.object({ profileId: z.number().int().positive(), commentId: z.number().int().positive(), type: z.enum(["spark", "heart", "insight", "celebrate"]) })).mutation(async ({ ctx, input }) => {
+    const result = await toggleCommentReaction(ctx.user.id, input);
+    if (!result) throw new TRPCError({ code: "NOT_FOUND", message: "Comment or active Profile not found" });
     return result;
   }),
 

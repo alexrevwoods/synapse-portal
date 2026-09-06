@@ -12,6 +12,7 @@ import {
   linkOwnedPortal,
   saveOwnedProfileInterests,
   setProfilePublished,
+  updateOwnedPortalLayout,
   updateOwnedProfile,
 } from "./db";
 import { canUseSkin, isKnownSkin, normalizeSkinId } from "../shared/skins";
@@ -21,6 +22,7 @@ import { protectedProcedure, router } from "./_core/trpc";
 const profileTypes = ["personal", "creator", "business", "organization", "project"] as const;
 export const nodeTypes = ["identity", "social", "web", "content", "conversion", "portal", "event", "product", "booking", "team"] as const;
 const portalRelationshipTypes = ["related", "brand", "team", "project", "community", "location"] as const;
+const mapIcons = ["spark", "orbit", "bolt", "gem", "leaf"] as const;
 
 export function normalizeUsername(value: string) {
   return value.trim().replace(/^@/, "").toLowerCase();
@@ -97,6 +99,8 @@ export const profileRouter = router({
         location: z.string().trim().max(160).optional(),
         websiteUrl: z.string().url().max(2048).optional().or(z.literal("")),
         portalTheme: z.string().trim().min(2).max(48).optional(),
+        mapAccentColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+        mapIcon: z.enum(mapIcons).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -112,6 +116,14 @@ export const profileRouter = router({
       const profile = await updateOwnedProfile(ctx.user.id, profileId, { ...updates, portalTheme: updates.portalTheme ? requestedTheme : undefined, websiteUrl: updates.websiteUrl || undefined });
       if (!profile) throw new TRPCError({ code: "NOT_FOUND", message: "Profile not found" });
       return profile;
+    }),
+
+  saveNetworkLayout: protectedProcedure
+    .input(z.object({ positions: z.array(z.object({ profileId: z.number().int().positive(), mapPositionX: z.number().int().min(8).max(92), mapPositionY: z.number().int().min(10).max(90) })).min(1).max(12) }))
+    .mutation(async ({ ctx, input }) => {
+      const network = await updateOwnedPortalLayout(ctx.user.id, input.positions);
+      if (!network) throw new TRPCError({ code: "NOT_FOUND", message: "Every Portal must belong to your account" });
+      return network;
     }),
 
   setPublished: protectedProcedure

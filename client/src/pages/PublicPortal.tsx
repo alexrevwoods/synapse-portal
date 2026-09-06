@@ -28,7 +28,7 @@ function displayType(value: string) { return value === "personal" ? "Person" : v
 export default function PublicPortal() {
   const [, params] = useRoute("/:username");
   const username = params?.username || "alex";
-  const [, navigate] = useLocation();
+  const [locationPath, navigate] = useLocation();
   const { isAuthenticated, loading } = useAuth();
   const portal = trpc.portal.getPublic.useQuery({ username });
   const myProfiles = trpc.profile.my.useQuery(undefined, { enabled: isAuthenticated });
@@ -55,6 +55,7 @@ export default function PublicPortal() {
   const connections = isDemo ? [] : portal.data?.network ?? [];
 
   useEffect(() => { if (!profile || isDemo) return; let visitorId = window.sessionStorage.getItem("whoarewe-visitor-id"); if (!visitorId) { visitorId = window.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`; window.sessionStorage.setItem("whoarewe-visitor-id", visitorId); } trackPortal.mutate({ username, eventType: "portal_view", visitorId }); }, [profile?.id, isDemo, username]);
+  useEffect(() => { const tab = new URLSearchParams(window.location.search).get("tab"); if (tab === "signals") { setActiveTab("signals"); window.setTimeout(() => { const target = window.location.hash ? document.querySelector(window.location.hash) : document.getElementById("signals"); target?.scrollIntoView({ behavior: "smooth", block: "start" }); }, 120); } }, [locationPath]);
   const beginParticipation = (action: "follow" | "connect") => { if (!isAuthenticated) { window.sessionStorage.setItem("whoarewe-post-login", `/onboarding?intent=${action}&target=${username}`); startLogin(); return; } if (!sourceProfileId) { navigate("/onboarding"); return; } const source = myProfiles.data?.find((item) => item.id === sourceProfileId); if (!source?.isPublished) { toast.info("Publish your Portal before participating in Connections."); navigate(`/builder/${sourceProfileId}`); return; } if (action === "follow") follow.mutate({ sourceProfileId, targetUsername: username }); else requestConnection.mutate({ sourceProfileId, targetUsername: username }); };
   const goToSection = (tab: PortalTab) => { setActiveTab(tab); document.getElementById(tab)?.scrollIntoView({ behavior: "smooth", block: "start" }); };
   const sharePortal = async () => { try { await navigator.clipboard.writeText(window.location.href); toast.success("Portal link copied"); } catch { toast.info("Copy this Portal URL from your browser to share it"); } };

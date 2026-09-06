@@ -4,6 +4,7 @@ import {
   type InsertUser,
   analyticsEvents,
   blocks,
+  commentReactions,
   memberships,
   nodeConnections,
   notifications,
@@ -139,11 +140,22 @@ export async function createProfileForUser(userId: number, input: { username: st
   return getOwnedProfile(userId, profileId);
 }
 
-export async function updateOwnedProfile(userId: number, profileId: number, input: { displayName?: string; bio?: string; location?: string; websiteUrl?: string; portalTheme?: string; avatarUrl?: string; brandLogoUrl?: string; brandPrimaryColor?: string; brandSecondaryColor?: string; customDomain?: string }) {
+export async function updateOwnedProfile(userId: number, profileId: number, input: { displayName?: string; bio?: string; location?: string; websiteUrl?: string; portalTheme?: string; avatarUrl?: string; brandLogoUrl?: string; brandPrimaryColor?: string; brandSecondaryColor?: string; mapAccentColor?: string; mapIcon?: string; customDomain?: string }) {
   const db = await getDb();
   if (!db) throw new Error("Database is unavailable");
   await db.update(profiles).set(input).where(and(eq(profiles.id, profileId), eq(profiles.ownerUserId, userId)));
   return getOwnedProfile(userId, profileId);
+}
+
+export async function updateOwnedPortalLayout(userId: number, positions: Array<{ profileId: number; mapPositionX: number; mapPositionY: number }>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is unavailable");
+  const unique = Array.from(new Map(positions.map((position) => [position.profileId, position])).values());
+  const profileIds = unique.map((position) => position.profileId);
+  const owned = profileIds.length ? await db.select({ id: profiles.id }).from(profiles).where(and(eq(profiles.ownerUserId, userId), inArray(profiles.id, profileIds))) : [];
+  if (owned.length !== unique.length) return null;
+  await Promise.all(unique.map((position) => db.update(profiles).set({ mapPositionX: position.mapPositionX, mapPositionY: position.mapPositionY }).where(eq(profiles.id, position.profileId))));
+  return getAccountPortalNetwork(userId);
 }
 
 export async function setProfilePublished(userId: number, profileId: number, isPublished: boolean) {
@@ -521,11 +533,17 @@ async function enrichSignals(rows: FeedRow[], currentProfileId?: number) {
       .orderBy(asc(signalComments.createdAt)),
     getMediaForSignals(db, signalIds),
   ]);
+  const commentIds = commentRows.map((entry) => entry.comment.id);
+  const commentReactionRows = commentIds.length ? await db.select().from(commentReactions).where(inArray(commentReactions.commentId, commentIds)) : [];
   return rows.map((row) => ({
     ...row,
     reactionCount: reactionRows.filter((reaction) => reaction.signalId === row.signal.id).length,
     reactedByCurrentProfile: currentProfileId ? reactionRows.some((reaction) => reaction.signalId === row.signal.id && reaction.profileId === currentProfileId) : false,
-    comments: commentRows.filter((entry) => entry.comment.signalId === row.signal.id),
+    comments: commentRows.filter((entry) => entry.comment.signalId === row.signal.id).map((entry) => ({
+      ...entry,
+      reactionCounts: commentReactionRows.filter((reaction) => reaction.commentId === entry.comment.id).reduce<Record<string, number>>((counts, reaction) => ({ ...counts, [reaction.type]: (counts[reaction.type] || 0) + 1 }), {}),
+      reactedTypes: currentProfileId ? commentReactionRows.filter((reaction) => reaction.commentId === entry.comment.id && reaction.profileId === currentProfileId).map((reaction) => reaction.type) : [],
+    })),
     media: media.get(row.signal.id) ?? [],
   }));
 }
@@ -685,6 +703,23 @@ export async function toggleSignalReaction(userId: number, input: { profileId: n
   }
   await db.insert(signalReactions).values({ signalId: input.signalId, profileId: input.profileId, type: "spark" });
   if (signal.profileId !== input.profileId) await createNotification({ profileId: signal.profileId, actorProfileId: input.profileId, type: "signal_reaction", signalId: signal.id });
+  return { active: true };
+}
+
+export async function toggleCommentReaction(userId: number, input: { profileId: number; commentId: number; type: "spark" | "heart" | "insight" | "celebrate" }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is unavailable");
+  const actor = await getOwnedProfile(userId, input.profileId);
+  if (!actor || !actor.isPublished) return null;
+  const commentRows = await db.select().from(signalComments).where(and(eq(signalComments.id, input.commentId), isNull(signalComments.deletedAt))).limit(1);
+  const comment = commentRows[0];
+  if (!comment || await isBlockedBetweenProfiles(actor.id, comment.profileId)) return null;
+  const existing = await db.select().from(commentReactions).where(and(eq(commentReactions.commentId, input.commentId), eq(commentReactions.profileId, input.profileId), eq(commentReactions.type, input.type))).limit(1);
+  if (existing[0]) {
+    await db.delete(commentReactions).where(eq(commentReactions.id, existing[0].id));
+    return { active: false };
+  }
+  await db.insert(commentReactions).values({ commentId: input.commentId, profileId: input.profileId, type: input.type });
   return { active: true };
 }
 

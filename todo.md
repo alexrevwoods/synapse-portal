@@ -50,3 +50,12 @@ The release uses **WhoAreWe** spelling exactly, presents **Where Identity Meets 
 - [x] Add owner-only edit and soft-delete controls for Signal comments and replies.
 - [x] Add unread conversation counts to Timeline, Portal Signals navigation, and the owner’s Portal tab; counts clear through the existing notification center.
 - [x] Validate schema migration, TypeScript, tests, production build, desktop layouts, and 390px mobile layouts.
+
+## Advanced Portal Map and Conversation Controls
+
+- [x] Persist every owner Portal’s private network-region coordinates and enable drag-and-drop arrangement in My Space.
+- [x] Add root-map icon and accent-color preferences, with five icon and five color choices in the Portal Builder.
+- [x] Add a prominent map center breadcrumb, a nearby **You are viewing** status, root-return navigation, relationship filters, and a filtered minimap experience.
+- [x] Add rich Signal-comment reactions: Spark, Love, Insight, and Celebrate.
+- [x] Add deep-linked notification actions that open the target Portal’s Signal conversation.
+- [x] Validate database migrations, typed APIs, TypeScript, tests, production build, and desktop map controls.
