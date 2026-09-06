@@ -422,7 +422,7 @@ body {
 .portal-map-breadcrumb button { overflow: hidden; flex: none; max-width: 6.5rem; color: rgba(228,239,255,.82); text-overflow: ellipsis; white-space: nowrap; }
 .portal-map-breadcrumb button:hover { color: #fff; }
 .portal-map-breadcrumb i { display: inline-block; margin: 0 .2rem; color: rgba(155,77,255,.85); font-style: normal; }
-.portal-switcher-trigger, .portal-switcher-drawer { display: none; }
+.portal-switcher-trigger, .portal-switcher-drawer, .mobile-full-network-launcher, .portal-full-network-bar { display: none; }
 .portal-map-gesture-hint { position: absolute; z-index: 25; right: .75rem; bottom: .75rem; display: none; align-items: center; gap: .55rem; max-width: 16.5rem; border: 1px solid rgba(0,216,255,.35); border-radius: .85rem; background: linear-gradient(135deg, rgba(5,24,38,.95), rgba(19,13,39,.94)); padding: .55rem; box-shadow: 0 12px 36px rgba(0,0,0,.34), 0 0 28px rgba(0,216,255,.12); backdrop-filter: blur(15px); }
 .portal-map-gesture-hint__icon { display: grid; width: 2rem; height: 2rem; flex: none; place-items: center; border-radius: .6rem; background: rgba(0,216,255,.13); color: #a7f5ff; }
 .portal-map-gesture-hint p { min-width: 0; margin: 0; }
@@ -433,6 +433,9 @@ body {
 @media (max-width: 680px) { .connected-portal-nav { top: 3.65rem; right: .55rem; max-width: 7rem; } .connected-portal-nav > p { display: none; } .connected-portal-nav button { padding: .3rem .4rem; font-size: .5rem; } .connected-portal-nav button span { width: 1.12rem; height: 1.12rem; } .connected-portal-nav button strong small { display: none; } .portal-map-minimap { right: .55rem; bottom: 3.2rem; } .portal-map-filter { top: 3.1rem; left: .55rem; max-width: calc(100% - 8.4rem); } .portal-map-filter span { display: none; } .portal-map-breadcrumb { top: .55rem; max-width: calc(100% - 10rem); font-size: .48rem; } .portal-map-breadcrumb > span { display: none; } .portal-map-breadcrumb button { max-width: 4.7rem; } }
 @media (max-width: 680px) {
   .connected-portal-nav--desktop { display: none; }
+  .portal-map-shell:not(.is-fullscreen) .portal-stage { min-height: 21rem; border-radius: 1.15rem; }
+  .portal-map-shell:not(.is-fullscreen) .portal-map-kicker, .portal-map-shell:not(.is-fullscreen) .portal-map-filter, .portal-map-shell:not(.is-fullscreen) .portal-map-breadcrumb, .portal-map-shell:not(.is-fullscreen) .portal-map-minimap, .portal-map-shell:not(.is-fullscreen) .portal-switcher-trigger { display: none; }
+  .portal-map-shell:not(.is-fullscreen) .map-control-cluster { top: .55rem; right: .55rem; }
   .portal-switcher-trigger { position: absolute; z-index: 23; top: 3.45rem; right: .55rem; display: flex; max-width: 9.75rem; align-items: center; gap: .35rem; border: 1px solid rgba(155,77,255,.38); border-radius: .66rem; background: rgba(8,13,26,.88); padding: .42rem .5rem; color: #eff5ff; box-shadow: 0 8px 24px rgba(0,0,0,.22); backdrop-filter: blur(12px); }
   .portal-switcher-trigger span { overflow: hidden; flex: 1; text-overflow: ellipsis; white-space: nowrap; font-size: .57rem; font-weight: 800; }
   .portal-switcher-trigger small { display: grid; min-width: 1rem; height: 1rem; place-items: center; border-radius: 999px; background: rgba(0,216,255,.18); color: #bdf9ff; font-size: .48rem; font-weight: 900; }
@@ -448,4 +451,22 @@ body {
   .portal-switcher-drawer strong small { display: block; margin-top: .08rem; color: #89a1c7; font-size: .5rem; font-weight: 700; }
   .portal-map-gesture-hint { display: flex; right: .55rem; bottom: .55rem; left: .55rem; max-width: none; }
   .portal-map-gesture-hint:has(~ .portal-switcher-drawer.is-open) { opacity: 0; pointer-events: none; }
+  .mobile-full-network-launcher { display: flex; width: 100%; align-items: center; gap: .65rem; border: 1px solid rgba(0,216,255,.34); border-radius: .9rem; background: linear-gradient(120deg, rgba(0,216,255,.11), rgba(155,77,255,.10)); margin-top: .65rem; padding: .72rem .8rem; color: #f0f7ff; box-shadow: 0 10px 28px rgba(0,0,0,.18); }
+  .mobile-full-network-launcher > span { display: grid; width: 2rem; height: 2rem; place-items: center; border-radius: .62rem; background: rgba(0,216,255,.16); color: #baf7ff; }
+  .mobile-full-network-launcher strong { flex: 1; font-size: .72rem; font-weight: 900; }
+  .mobile-full-network-launcher small { color: #9fb9df; font-size: .56rem; font-weight: 800; }
+  .portal-map-shell.is-fullscreen { position: fixed; z-index: 90; inset: 0; width: 100%; height: 100dvh; background: #080B14; }
+  .portal-map-shell.is-fullscreen .portal-stage--fullscreen { min-height: 100dvh; height: 100dvh; border: 0; border-radius: 0; }
+  .portal-map-shell.is-fullscreen .portal-map-kicker, .portal-map-shell.is-fullscreen .portal-map-breadcrumb { display: none; }
+  .portal-map-shell.is-fullscreen .map-control-cluster { top: 4.35rem; right: .6rem; }
+  .portal-map-shell.is-fullscreen .portal-map-filter { top: 4.35rem; left: .6rem; max-width: calc(100% - 10.7rem); }
+  .portal-map-shell.is-fullscreen .portal-switcher-trigger { top: 7rem; right: .6rem; }
+  .portal-map-shell.is-fullscreen .portal-map-minimap { right: .65rem; bottom: .75rem; }
+  .portal-map-shell.is-fullscreen .portal-map-gesture-hint { right: 3.85rem; bottom: .72rem; left: .65rem; }
+  .portal-full-network-bar { position: absolute; z-index: 30; top: .6rem; right: .6rem; left: .6rem; display: flex; align-items: center; justify-content: space-between; border: 1px solid rgba(255,255,255,.10); border-radius: .85rem; background: rgba(7,12,24,.9); padding: .5rem .55rem .5rem .75rem; box-shadow: 0 10px 28px rgba(0,0,0,.24); backdrop-filter: blur(14px); }
+  .portal-full-network-bar div { min-width: 0; }
+  .portal-full-network-bar span, .portal-full-network-bar strong { display: block; }
+  .portal-full-network-bar span { color: #94b4de; font-size: .48rem; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
+  .portal-full-network-bar strong { overflow: hidden; margin-top: .1rem; color: #fff; font-size: .72rem; font-weight: 900; text-overflow: ellipsis; white-space: nowrap; }
+  .portal-full-network-bar button { display: flex; align-items: center; gap: .35rem; border-radius: .58rem; background: rgba(255,255,255,.08); padding: .45rem .52rem; color: #eaf4ff; font-size: .56rem; font-weight: 800; }
 }

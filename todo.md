@@ -74,3 +74,11 @@ The release uses **WhoAreWe** spelling exactly, presents **Where Identity Meets 
 - [x] Add a local, one-time gesture guide for pinch zoom and two-finger pan.
 - [x] Generate and apply the `mapAutoFocusNext` profile migration.
 - [x] Validate mobile rendering, TypeScript, tests, and production build.
+
+## Embedded and Full Network Mobile Map
+
+- [x] Simplify the normal mobile Portal map to the map preview, zoom/reset controls, and one clear **Show full network** action.
+- [x] Move Portal regions, filters, minimap, breadcrumb, and gesture guide into the explicit full-network experience.
+- [x] Add an edge-to-edge, scroll-locking full-network map with a persistent **Minimize** action.
+- [x] Preserve accessible Escape handling and auto-close the Portal drawer before switching map regions.
+- [x] Validate mobile rendering, TypeScript, automated tests, and the production build.
