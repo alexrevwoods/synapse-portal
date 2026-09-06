@@ -1,0 +1,1 @@
+ALTER TABLE `profiles` ADD `mapAutoFocusNext` boolean DEFAULT false NOT NULL;

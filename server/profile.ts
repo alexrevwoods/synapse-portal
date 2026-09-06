@@ -101,6 +101,7 @@ export const profileRouter = router({
         portalTheme: z.string().trim().min(2).max(48).optional(),
         mapAccentColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
         mapIcon: z.enum(mapIcons).optional(),
+        mapAutoFocusNext: z.boolean().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {

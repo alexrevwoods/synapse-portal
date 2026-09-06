@@ -65,3 +65,12 @@ The release uses **WhoAreWe** spelling exactly, presents **Where Identity Meets 
 - [x] Prevent mobile and desktop destination sheets from opening when a visitor changes connected Portal regions.
 - [x] Preserve the animated region transition, breadcrumb, minimap, selected rail state, and root return control.
 - [x] Verify live Portal switching and rerun TypeScript, tests, and production build.
+
+## Mobile Map Navigation Refinements
+
+- [x] Replace the persistent mobile connected-Portal rail with a compact, on-demand Portal switcher drawer.
+- [x] Close the drawer before moving to a selected Portal region and retain breadcrumb, minimap, and root return controls.
+- [x] Add an owner-controlled **Auto-focus next Portal** map preference, persisted to the Profile.
+- [x] Add a local, one-time gesture guide for pinch zoom and two-finger pan.
+- [x] Generate and apply the `mapAutoFocusNext` profile migration.
+- [x] Validate mobile rendering, TypeScript, tests, and production build.

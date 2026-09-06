@@ -140,7 +140,7 @@ export async function createProfileForUser(userId: number, input: { username: st
   return getOwnedProfile(userId, profileId);
 }
 
-export async function updateOwnedProfile(userId: number, profileId: number, input: { displayName?: string; bio?: string; location?: string; websiteUrl?: string; portalTheme?: string; avatarUrl?: string; brandLogoUrl?: string; brandPrimaryColor?: string; brandSecondaryColor?: string; mapAccentColor?: string; mapIcon?: string; customDomain?: string }) {
+export async function updateOwnedProfile(userId: number, profileId: number, input: { displayName?: string; bio?: string; location?: string; websiteUrl?: string; portalTheme?: string; avatarUrl?: string; brandLogoUrl?: string; brandPrimaryColor?: string; brandSecondaryColor?: string; mapAccentColor?: string; mapIcon?: string; mapAutoFocusNext?: boolean; customDomain?: string }) {
   const db = await getDb();
   if (!db) throw new Error("Database is unavailable");
   await db.update(profiles).set(input).where(and(eq(profiles.id, profileId), eq(profiles.ownerUserId, userId)));

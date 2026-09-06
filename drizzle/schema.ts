@@ -71,6 +71,7 @@ export const profiles = mysqlTable(
     brandSecondaryColor: varchar("brandSecondaryColor", { length: 12 }),
     mapAccentColor: varchar("mapAccentColor", { length: 12 }).default("#00D8FF").notNull(),
     mapIcon: varchar("mapIcon", { length: 24 }).default("spark").notNull(),
+    mapAutoFocusNext: boolean("mapAutoFocusNext").default(false).notNull(),
     mapPositionX: int("mapPositionX").default(50).notNull(),
     mapPositionY: int("mapPositionY").default(50).notNull(),
     customDomain: varchar("customDomain", { length: 255 }),
