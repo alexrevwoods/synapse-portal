@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { createOwnedSignal, getOwnedProfile, getOwnedSignals, updateOwnedPrivateNote, updateOwnedSignal } from "./db";
-import { watermarkSignalImage } from "./imageWatermark";
+import { prepareSignalDisplayImage, watermarkSignalImage } from "./imageWatermark";
 import { storagePut } from "./storage";
 import { protectedProcedure, router } from "./_core/trpc";
 
@@ -12,7 +12,7 @@ const imageAspects = ["wide", "square"] as const;
 const imageMimeTypes = ["image/jpeg", "image/png", "image/webp"] as const;
 const mediaLicenses = ["all_rights_reserved", "credit_required", "collaboration_allowed"] as const;
 const mimeExtensions: Record<(typeof imageMimeTypes)[number], string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
-const mediaInput = z.object({ storageUrl: z.string().regex(/^\/manus-storage\//), altText: z.string().trim().max(280).optional(), focalX: z.number().int().min(0).max(100).optional(), focalY: z.number().int().min(0).max(100).optional() });
+const mediaInput = z.object({ storageUrl: z.string().regex(/^\/manus-storage\//), protectedStorageUrl: z.string().regex(/^\/manus-storage\//).optional(), altText: z.string().trim().max(280).optional(), focalX: z.number().int().min(0).max(100).optional(), focalY: z.number().int().min(0).max(100).optional() });
 
 export const signalsRouter = router({
   listMine: protectedProcedure.input(z.object({ profileId: z.number().int().positive() })).query(async ({ ctx, input }) => {
@@ -25,15 +25,21 @@ export const signalsRouter = router({
     if (!profile) throw new TRPCError({ code: "NOT_FOUND", message: "Profile not found" });
     const image = Buffer.from(input.base64, "base64");
     if (!image.length || image.length > 8 * 1024 * 1024) throw new TRPCError({ code: "PAYLOAD_TOO_LARGE", message: "Choose an image smaller than 8 MB" });
+    let displayImage: Buffer;
     let protectedImage: Buffer;
     try {
+      displayImage = await prepareSignalDisplayImage(image, input.mimeType);
       protectedImage = await watermarkSignalImage(image, input.mimeType, profile.displayName, profile.username, profile.signalWatermarkStrength);
     } catch {
       throw new TRPCError({ code: "BAD_REQUEST", message: "This image could not be processed. Use a valid JPG, PNG, or WebP file." });
     }
-    const filename = `signals/${ctx.user.id}/${profile.id}/${crypto.randomUUID()}.${mimeExtensions[input.mimeType]}`;
-    const stored = await storagePut(filename, protectedImage, input.mimeType);
-    return { url: stored.url };
+    const uploadId = crypto.randomUUID();
+    const extension = mimeExtensions[input.mimeType];
+    const [displayStored, protectedStored] = await Promise.all([
+      storagePut(`signals/${ctx.user.id}/${profile.id}/${uploadId}.${extension}`, displayImage, input.mimeType),
+      storagePut(`signals/${ctx.user.id}/${profile.id}/protected-${uploadId}.${extension}`, protectedImage, input.mimeType),
+    ]);
+    return { url: displayStored.url, protectedUrl: protectedStored.url };
   }),
   create: protectedProcedure.input(z.object({ profileId: z.number().int().positive(), type: z.enum(signalTypes), body: z.string().trim().max(5000), visibility: z.enum(visibilityTypes), reminderAt: z.coerce.date().optional(), imageAspect: z.enum(imageAspects).optional(), media: z.array(mediaInput).min(1).max(10).optional(), seoTitle: z.string().trim().max(120).optional(), seoDescription: z.string().trim().max(200).optional(), seoImageUrl: z.string().regex(/^\/manus-storage\//).optional().or(z.literal("")), mediaLicense: z.enum(mediaLicenses).optional() })).mutation(async ({ ctx, input }) => {
     if (input.reminderAt && input.visibility !== "private") throw new TRPCError({ code: "BAD_REQUEST", message: "Reminders can only be attached to private notes" });

@@ -1,0 +1,1 @@
+ALTER TABLE `signal_media` ADD `protectedStorageUrl` text;

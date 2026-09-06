@@ -16,7 +16,11 @@ A server-generated 1280×720 PNG sample passed through the same Sharp transform 
 
 ### Full-image ownership update
 
-The corner-only attribution has been replaced by a rotated, repeated grid across the entire image. Each repeated mark contains the owner’s display name, Portal handle, and **WhoAreWe**, for example `© Media Revolution · @mediarevolution · WhoAreWe`. The normalized image dimensions are determined after EXIF rotation, so portrait images captured on a phone receive a correctly sized full-image overlay. A 390px mobile capture of the Media Revolution Portal confirms the repeated attribution remains visible in the Signal feed image. The three Signal images that existed before the initial watermark release were reprocessed, written to new managed-storage objects, and their database references updated.
+The corner-only attribution was replaced by a rotated, repeated grid across the entire **protected download** image. Each repeated mark contains the owner’s display name, Portal handle, and **WhoAreWe**, for example `© Media Revolution · @mediarevolution · WhoAreWe`. The normalized image dimensions are determined after EXIF rotation, so portrait images captured on a phone receive a correctly sized full-image overlay. The three Signal images that existed before the initial watermark release were reprocessed into managed-storage copies for clean viewing and protected downloads.
+
+### Clean viewing and protected downloads
+
+The media policy was revised after creator feedback. The public in-app rendition is now clean, while each newly uploaded image produces a separate full-image-watermarked derivative reserved for the protected download flow. Existing Signal media was backfilled from retained original managed-storage objects into both clean-view and protected-download copies. A mobile public Signal detail capture at `/mediarevolution/signals/60001` confirms the clean image treatment and the Image Rights & Downloads panel. Browser verification opened the explicit acknowledgement and completed a protected download; the resulting `signal_download` analytics event was recorded. The public Signal page also records aggregate `signal_view` and `signal_share` events without storing visitor identity.
 
 ## SEO and SSR verification
 

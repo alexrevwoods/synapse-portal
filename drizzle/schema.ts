@@ -216,6 +216,8 @@ export const signalMedia = mysqlTable(
     id: int("id").autoincrement().primaryKey(),
     signalId: int("signalId").notNull(),
     storageUrl: text("storageUrl").notNull(),
+    /** Watermarked derivative served only by the acknowledged download flow. */
+    protectedStorageUrl: text("protectedStorageUrl"),
     altText: varchar("altText", { length: 280 }),
     focalX: int("focalX").default(50).notNull(),
     focalY: int("focalY").default(50).notNull(),

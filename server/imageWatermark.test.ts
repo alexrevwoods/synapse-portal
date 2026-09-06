@@ -1,6 +1,6 @@
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
-import { escapeSvgText, watermarkSignalImage, watermarkSvg } from "./imageWatermark";
+import { escapeSvgText, prepareSignalDisplayImage, watermarkSignalImage, watermarkSvg } from "./imageWatermark";
 
 describe("Signal image watermark helpers", () => {
   it("escapes owner labels before embedding them in watermark SVG", () => {
@@ -45,5 +45,25 @@ describe("Signal image watermark helpers", () => {
     expect(info.width).toBe(640);
     expect(info.height).toBe(360);
     expect(darkSamples).toBeGreaterThan(450);
+  });
+
+  it("creates a clean in-app rendition separately from the protected download copy", async () => {
+    const source = await sharp({
+      create: { width: 480, height: 320, channels: 3, background: { r: 255, g: 255, b: 255 } },
+    }).png().toBuffer();
+    const clean = await prepareSignalDisplayImage(source, "image/png");
+    const protectedImage = await watermarkSignalImage(source, "image/png", "Media Revolution", "mediarevolution");
+    const sampleDarkPixels = async (buffer: Buffer) => {
+      const { data, info } = await sharp(buffer).raw().toBuffer({ resolveWithObject: true });
+      let count = 0;
+      for (let y = 0; y < info.height; y += 4) for (let x = 0; x < info.width; x += 4) {
+        const pixel = (y * info.width + x) * info.channels;
+        if (data[pixel] < 180 && data[pixel + 1] < 180 && data[pixel + 2] < 180) count += 1;
+      }
+      return count;
+    };
+
+    expect(await sampleDarkPixels(clean)).toBe(0);
+    expect(await sampleDarkPixels(protectedImage)).toBeGreaterThan(300);
   });
 });

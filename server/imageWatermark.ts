@@ -1,4 +1,4 @@
-import sharp from "sharp";
+import sharp, { type Sharp } from "sharp";
 
 const MAX_SIDE = 2560;
 export const watermarkStrengths = ["standard", "strong", "maximum"] as const;
@@ -40,6 +40,24 @@ function watermarkSvg(label: string, width: number, height: number, strength: Wa
   return Buffer.from(`<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg"><g transform="rotate(-28 ${Math.round(width / 2)} ${Math.round(height / 2)})">${textNodes.join("")}</g></svg>`);
 }
 
+async function normalizeSignalImage(input: Buffer) {
+  return sharp(input, { failOn: "error", limitInputPixels: 40_000_000 })
+    .rotate()
+    .resize({ width: MAX_SIDE, height: MAX_SIDE, fit: "inside", withoutEnlargement: true })
+    .toBuffer();
+}
+
+function encodeImage(pipeline: Sharp, mimeType: "image/jpeg" | "image/png" | "image/webp") {
+  if (mimeType === "image/png") return pipeline.png({ compressionLevel: 9 }).toBuffer();
+  if (mimeType === "image/webp") return pipeline.webp({ quality: 90 }).toBuffer();
+  return pipeline.jpeg({ quality: 90, mozjpeg: true }).toBuffer();
+}
+
+/** Clean, normalized rendition for in-app viewing. Protected download copies are created separately. */
+export async function prepareSignalDisplayImage(input: Buffer, mimeType: "image/jpeg" | "image/png" | "image/webp") {
+  return encodeImage(sharp(await normalizeSignalImage(input)), mimeType);
+}
+
 /**
  * Store a visible attribution mark in the image bytes themselves so standard
  * save and new-tab actions retain the Portal owner's copyright notice.
@@ -54,19 +72,14 @@ export async function watermarkSignalImage(
   // Rotate and resize first, then read the normalized dimensions. EXIF rotation
   // can swap width and height, and the SVG composite must exactly match the
   // final raster bounds on every phone-originated image.
-  const normalized = await sharp(input, { failOn: "error", limitInputPixels: 40_000_000 })
-    .rotate()
-    .resize({ width: MAX_SIDE, height: MAX_SIDE, fit: "inside", withoutEnlargement: true })
-    .toBuffer();
+  const normalized = await normalizeSignalImage(input);
   const metadata = await sharp(normalized).metadata();
   const outputWidth = metadata.width || 1200;
   const outputHeight = metadata.height || 675;
   const label = `© ${ownerName}${ownerUsername ? ` · @${ownerUsername}` : ""} · WhoAreWe`;
   const pipeline = sharp(normalized).composite([{ input: watermarkSvg(label, outputWidth, outputHeight, strength), top: 0, left: 0 }]);
 
-  if (mimeType === "image/png") return pipeline.png({ compressionLevel: 9 }).toBuffer();
-  if (mimeType === "image/webp") return pipeline.webp({ quality: 90 }).toBuffer();
-  return pipeline.jpeg({ quality: 90, mozjpeg: true }).toBuffer();
+  return encodeImage(pipeline, mimeType);
 }
 
 export { escapeSvgText, watermarkSvg };

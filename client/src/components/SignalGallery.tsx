@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, Images } from "lucide-react";
 export type SignalMediaItem = {
   id?: number;
   storageUrl: string;
+  protectedStorageUrl?: string | null;
   altText: string | null;
   focalX: number;
   focalY: number;

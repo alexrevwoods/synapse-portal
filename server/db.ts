@@ -333,7 +333,7 @@ export async function upsertOwnedNodeConnection(userId: number, input: { profile
   return rows[0] ?? null;
 }
 
-type MediaInput = { storageUrl: string; altText?: string; focalX?: number; focalY?: number };
+type MediaInput = { storageUrl: string; protectedStorageUrl?: string; altText?: string; focalX?: number; focalY?: number };
 
 async function getMediaForSignals(db: NonNullable<Awaited<ReturnType<typeof getDb>>>, signalIds: number[]) {
   if (!signalIds.length) return new Map<number, Array<typeof signalMedia.$inferSelect>>();
@@ -354,7 +354,7 @@ export async function createOwnedSignal(userId: number, input: { profileId: numb
   const { media, ...signalInput } = input;
   const result = await db.insert(signals).values({ ...signalInput, imageUrl: media?.[0]?.storageUrl ?? null, publishedAt: new Date() });
   const signalId = Number(result[0].insertId);
-  if (media?.length) await db.insert(signalMedia).values(media.map((item, sortOrder) => ({ signalId, storageUrl: item.storageUrl, altText: item.altText || null, focalX: item.focalX ?? 50, focalY: item.focalY ?? 50, sortOrder })));
+  if (media?.length) await db.insert(signalMedia).values(media.map((item, sortOrder) => ({ signalId, storageUrl: item.storageUrl, protectedStorageUrl: item.protectedStorageUrl || null, altText: item.altText || null, focalX: item.focalX ?? 50, focalY: item.focalY ?? 50, sortOrder })));
   const rows = await db.select().from(signals).where(eq(signals.id, signalId)).limit(1);
   return rows[0] ? { ...rows[0], media: media ?? [] } : null;
 }
@@ -591,7 +591,9 @@ async function enrichSignals(rows: FeedRow[], currentProfileId?: number) {
       reactionCounts: commentReactionRows.filter((reaction) => reaction.commentId === entry.comment.id).reduce<Record<string, number>>((counts, reaction) => ({ ...counts, [reaction.type]: (counts[reaction.type] || 0) + 1 }), {}),
       reactedTypes: currentProfileId ? commentReactionRows.filter((reaction) => reaction.commentId === entry.comment.id && reaction.profileId === currentProfileId).map((reaction) => reaction.type) : [],
     })),
-    media: media.get(row.signal.id) ?? [],
+    // Public feed/detail payloads intentionally expose only the clean in-app
+    // rendition. Protected derivatives are retrieved only after download acknowledgement.
+    media: (media.get(row.signal.id) ?? []).map(({ protectedStorageUrl: _protectedStorageUrl, ...item }) => item),
   }));
 }
 
@@ -621,6 +623,44 @@ export async function getPublicSignalByUsernameAndId(username: string, signalId:
     .limit(1);
   const enriched = await enrichSignals(rows);
   return enriched[0] ?? null;
+}
+
+/** Resolves a watermarked derivative only after a visitor acknowledges the Signal licence. */
+export async function getPublicSignalProtectedDownload(username: string, signalId: number, mediaId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db
+    .select({ media: signalMedia, signal: signals, profile: profiles })
+    .from(signalMedia)
+    .innerJoin(signals, eq(signalMedia.signalId, signals.id))
+    .innerJoin(profiles, eq(signals.profileId, profiles.id))
+    .where(and(eq(profiles.username, username), eq(profiles.isPublished, true), eq(signals.id, signalId), eq(signals.visibility, "public"), eq(signalMedia.id, mediaId)))
+    .limit(1);
+  const row = rows[0];
+  if (!row) return null;
+  await db.insert(analyticsEvents).values({ profileId: row.profile.id, signalId, eventType: "signal_download" });
+  return {
+    url: row.media.protectedStorageUrl || row.media.storageUrl,
+    fileName: `${row.profile.username}-signal-${signalId}-${mediaId}`,
+    ownerName: row.profile.displayName,
+    ownerUsername: row.profile.username,
+    license: row.signal.mediaLicense,
+  };
+}
+
+/** Records aggregate public Signal reach without storing visitor identities. */
+export async function recordPublicSignalEvent(username: string, signalId: number, eventType: "signal_view" | "signal_share") {
+  const db = await getDb();
+  if (!db) return false;
+  const rows = await db
+    .select({ profileId: profiles.id })
+    .from(signals)
+    .innerJoin(profiles, eq(signals.profileId, profiles.id))
+    .where(and(eq(profiles.username, username), eq(profiles.isPublished, true), eq(signals.id, signalId), eq(signals.visibility, "public")))
+    .limit(1);
+  if (!rows[0]) return false;
+  await db.insert(analyticsEvents).values({ profileId: rows[0].profileId, signalId, eventType });
+  return true;
 }
 
 /** Lightweight public index used only for crawler sitemaps; private content is never returned. */
@@ -1012,7 +1052,7 @@ export async function resolveReport(userId: number, reportId: number, status: "r
   return rows[0] ?? null;
 }
 
-export async function recordAnalyticsEvent(input: { profileId: number; nodeId?: number; signalId?: number; eventType: "portal_view" | "node_open" | "signal_view"; visitorId?: string; sessionId?: string }) {
+export async function recordAnalyticsEvent(input: { profileId: number; nodeId?: number; signalId?: number; eventType: "portal_view" | "node_open" | "signal_view" | "signal_share" | "signal_download"; visitorId?: string; sessionId?: string }) {
   const db = await getDb();
   if (!db) return null;
   const result = await db.insert(analyticsEvents).values({
@@ -1066,12 +1106,21 @@ export async function getProfileAnalytics(userId: number, profileId: number) {
     title: node.title,
     opens: eventRows.filter((event) => event.nodeId === node.id && event.eventType === "node_open").length,
   })).sort((first, second) => second.opens - first.opens);
+  const signalMetrics = profileSignals.map((signal) => ({
+    id: signal.id,
+    title: signal.seoTitle || signal.body.replace(/\s+/g, " ").trim().slice(0, 72) || "Image Signal",
+    views: eventRows.filter((event) => event.signalId === signal.id && event.eventType === "signal_view").length,
+    shares: eventRows.filter((event) => event.signalId === signal.id && event.eventType === "signal_share").length,
+    protectedDownloads: eventRows.filter((event) => event.signalId === signal.id && event.eventType === "signal_download").length,
+  })).sort((first, second) => (second.views + second.shares + second.protectedDownloads) - (first.views + first.shares + first.protectedDownloads));
   return {
     profile,
     overview: {
       portalViews: eventRows.filter((event) => event.eventType === "portal_view").length,
       nodeOpens: eventRows.filter((event) => event.eventType === "node_open").length,
       signalViews: eventRows.filter((event) => event.eventType === "signal_view").length,
+      signalShares: eventRows.filter((event) => event.eventType === "signal_share").length,
+      protectedDownloads: eventRows.filter((event) => event.eventType === "signal_download").length,
       signals: profileSignals.length,
       reactions: reactionRows.length,
       comments: commentRows.length,
@@ -1080,6 +1129,7 @@ export async function getProfileAnalytics(userId: number, profileId: number) {
     },
     activity,
     nodeOpens,
+    signalMetrics,
   };
 }
 

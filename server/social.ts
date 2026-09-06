@@ -8,10 +8,12 @@ import {
   getFollowSuggestions,
   getNotificationsForProfile,
   getPublicSignalByUsernameAndId,
+  getPublicSignalProtectedDownload,
   getPublicSignalFeed,
   getTimelineForProfile,
   getUnreadCommentCount,
   markNotificationsRead,
+  recordPublicSignalEvent,
   toggleCommentReaction,
   toggleSignalReaction,
   updateOwnedSignalComment,
@@ -41,6 +43,18 @@ export const socialRouter = router({
   publicSignal: publicProcedure
     .input(z.object({ username: z.string().trim().min(2).max(48), signalId: z.number().int().positive() }))
     .query(({ input }) => getPublicSignalByUsernameAndId(input.username.replace(/^@/, "").toLowerCase(), input.signalId)),
+
+  recordPublicSignalEvent: publicProcedure
+    .input(z.object({ username: z.string().trim().min(2).max(48), signalId: z.number().int().positive(), eventType: z.enum(["signal_view", "signal_share"]) }))
+    .mutation(({ input }) => recordPublicSignalEvent(input.username.replace(/^@/, "").toLowerCase(), input.signalId, input.eventType)),
+
+  protectedSignalDownload: publicProcedure
+    .input(z.object({ username: z.string().trim().min(2).max(48), signalId: z.number().int().positive(), mediaId: z.number().int().positive() }))
+    .mutation(async ({ input }) => {
+      const download = await getPublicSignalProtectedDownload(input.username.replace(/^@/, "").toLowerCase(), input.signalId, input.mediaId);
+      if (!download) throw new TRPCError({ code: "NOT_FOUND", message: "This protected Signal image is unavailable" });
+      return download;
+    }),
 
   timeline: protectedProcedure.input(z.object({ profileId: z.number().int().positive(), relationshipFilter: z.enum(["all", "following", "connections", "mine"]).default("all") })).query(async ({ ctx, input }) => {
     const feed = await getTimelineForProfile(ctx.user.id, input.profileId, input.relationshipFilter);
