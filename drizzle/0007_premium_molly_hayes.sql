@@ -1,0 +1,1 @@
+ALTER TABLE `profile_nodes` MODIFY COLUMN `nodeType` enum('identity','social','web','content','conversion','synapse','event','product','booking','team') NOT NULL;

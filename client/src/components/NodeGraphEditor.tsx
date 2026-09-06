@@ -5,7 +5,7 @@ import { trpc } from "@/lib/trpc";
 
 type Node = {
   id: number;
-  type: "identity" | "social" | "web" | "content" | "conversion" | "synapse";
+  type: "identity" | "social" | "web" | "content" | "conversion" | "synapse" | "event" | "product" | "booking" | "team";
   title: string;
   subtitle: string | null;
   description: string | null;

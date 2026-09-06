@@ -50,6 +50,13 @@
       "when": 1788669113926,
       "tag": "0006_wise_jack_power",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1788670089083,
+      "tag": "0007_premium_molly_hayes",
+      "breakpoints": true
     }
   ]
 }

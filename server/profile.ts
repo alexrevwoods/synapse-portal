@@ -13,7 +13,7 @@ import { canUseSkin, isKnownSkin, normalizeSkinId } from "../shared/skins";
 import { protectedProcedure, router } from "./_core/trpc";
 
 const profileTypes = ["personal", "creator", "business", "organization", "project"] as const;
-const nodeTypes = ["identity", "social", "web", "content", "conversion", "synapse"] as const;
+export const nodeTypes = ["identity", "social", "web", "content", "conversion", "synapse", "event", "product", "booking", "team"] as const;
 
 export function normalizeUsername(value: string) {
   return value.trim().replace(/^@/, "").toLowerCase();

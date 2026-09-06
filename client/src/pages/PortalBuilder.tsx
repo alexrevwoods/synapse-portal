@@ -9,7 +9,7 @@ import NodeGraphEditor from "@/components/NodeGraphEditor";
 import ProfileSwitcher from "@/components/ProfileSwitcher";
 import PortalThemePicker from "@/components/PortalThemePicker";
 
-const nodeOptions = [["web", "Website"], ["content", "Content"], ["social", "Social account"], ["identity", "Connected identity"], ["conversion", "Contact or CTA"], ["synapse", "Synapse destination"]] as const;
+const nodeOptions = [["web", "Website"], ["content", "Content"], ["social", "Social account"], ["identity", "Connected identity"], ["conversion", "Contact or CTA"], ["synapse", "Synapse destination"], ["event", "Event"], ["product", "Product"], ["booking", "Booking"], ["team", "Team"]] as const;
 type NodeType = (typeof nodeOptions)[number][0];
 
 function BuilderNavigation({ profileId, username, isPublished, isPublishing, isAdmin, onPublish }: { profileId: number; username: string; isPublished: boolean; isPublishing: boolean; isAdmin: boolean; onPublish: () => void }) {
