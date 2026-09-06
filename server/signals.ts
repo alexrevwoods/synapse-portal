@@ -26,7 +26,7 @@ export const signalsRouter = router({
     if (!image.length || image.length > 8 * 1024 * 1024) throw new TRPCError({ code: "PAYLOAD_TOO_LARGE", message: "Choose an image smaller than 8 MB" });
     let protectedImage: Buffer;
     try {
-      protectedImage = await watermarkSignalImage(image, input.mimeType, profile.displayName);
+      protectedImage = await watermarkSignalImage(image, input.mimeType, profile.displayName, profile.username);
     } catch {
       throw new TRPCError({ code: "BAD_REQUEST", message: "This image could not be processed. Use a valid JPG, PNG, or WebP file." });
     }

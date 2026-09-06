@@ -12,7 +12,11 @@ The project screenshot renderer captured the owner workspace at `/signals/1`, sh
 
 ## Watermark verification
 
-A server-generated 1280×720 PNG sample passed through the same Sharp transform as Signal uploads. The rendered image displays a high-contrast, bottom-right pill reading `© Media Revolution · WhoAreWe`. A unit test also samples pixels in the attribution pill to confirm the visible watermark is baked into the output image bytes, rather than supplied only by CSS or a browser overlay.
+A server-generated 1280×720 PNG sample passed through the same Sharp transform as Signal uploads. The rendered image displays repeated, high-contrast owner attribution across the entire image. Unit tests inspect the repeated SVG grid and transformed image pixels to confirm the watermark is baked into the output image bytes, rather than supplied only by CSS or a browser overlay.
+
+### Full-image ownership update
+
+The corner-only attribution has been replaced by a rotated, repeated grid across the entire image. Each repeated mark contains the owner’s display name, Portal handle, and **WhoAreWe**, for example `© Media Revolution · @mediarevolution · WhoAreWe`. The normalized image dimensions are determined after EXIF rotation, so portrait images captured on a phone receive a correctly sized full-image overlay. A 390px mobile capture of the Media Revolution Portal confirms the repeated attribution remains visible in the Signal feed image. The three Signal images that existed before the initial watermark release were reprocessed, written to new managed-storage objects, and their database references updated.
 
 ## SEO and SSR verification
 

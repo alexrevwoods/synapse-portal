@@ -3,7 +3,8 @@
 ## Completed release
 
 - [x] Added editable Signal SEO and share metadata, including a title, description, and featured-image selector that only permits media belonging to the same Signal.
-- [x] Watermarked uploaded JPG, PNG, and WebP Signal images at storage time using a permanent Sharp image transform.
+- [x] Watermarked uploaded JPG, PNG, and WebP Signal images at storage time using a permanent Sharp image transform, repeated across the full image with the owner display name and Portal handle.
+- [x] Reprocessed the three pre-release Signal images into new full-image-watermarked managed-storage objects and updated their Signal records.
 - [x] Built canonical, shareable Signal detail pages at `/{username}/signals/{signalId}`.
 - [x] Server-rendered the homepage, Discover, topic, public Portal, and public Signal routes, with safe browser-global guards for the public rendering path.
 - [x] Added route-specific title, description, canonical, OpenGraph, Twitter, JSON-LD, `robots.txt`, and public-only `sitemap.xml` output.
