@@ -55,7 +55,7 @@ export default function Home() {
         <nav className="hidden items-center gap-7 text-xs font-bold text-slate-400 md:flex">
           <a href="#model" className="transition hover:text-cyan-100">The model</a>
           <a href="#membership" className="transition hover:text-cyan-100">Membership</a>
-          <Link href="/@alex" className="transition hover:text-cyan-100">Explore a Portal</Link>
+          <Link href="/mediarevolution" className="transition hover:text-cyan-100">Explore a Portal</Link>
         </nav>
         {isAuthenticated ? <Link href="/account" className="secondary-button !rounded-full !px-4 !py-2.5 !text-xs">My Portals</Link> : <div className="flex items-center gap-3"><Link href="/account" className="hidden text-xs font-bold text-slate-400 transition hover:text-cyan-100 sm:block">Sign in</Link><Link href="/join" className="secondary-button !rounded-full !px-4 !py-2.5 !text-xs">Join Synapse</Link></div>}
       </header>
@@ -71,7 +71,7 @@ export default function Home() {
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link href={isAuthenticated ? "/account" : "/join"} className="primary-button">{isAuthenticated ? "Open My Portals" : "Create free Account"} <ArrowRight size={16} /></Link>
-            <Link href="/@alex" className="secondary-button">Explore a live Portal <Compass size={16} /></Link>
+            <Link href="/mediarevolution" className="secondary-button">Explore a live Portal <Compass size={16} /></Link>
           </div>
           <div className="mt-9 flex flex-wrap gap-x-6 gap-y-3 text-xs font-semibold text-slate-500">
             <span className="flex items-center gap-2"><Check size={14} className="text-cyan-200" /> Create an Account free</span>
@@ -122,7 +122,7 @@ export default function Home() {
 
       <section className="relative z-10 border-y border-white/[0.07] bg-slate-950/25">
         <div className="mx-auto grid max-w-7xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[.82fr_1.18fr] lg:items-center lg:px-8 lg:py-24">
-          <div><span className="eyebrow">Discovery first</span><h2 className="font-display mt-5 text-3xl font-semibold tracking-[-.05em] text-white sm:text-4xl">The Portal acquires. The Network retains.</h2><p className="mt-5 max-w-md text-sm leading-7 text-slate-400">A stranger can immediately understand and explore a public identity. When they want to follow, Connect, react, or publish, Synapse invites them to become an intentional participant.</p><Link href="/@alex" className="mt-7 inline-flex items-center gap-2 text-sm font-bold text-cyan-100 transition hover:gap-3">See the Portal experience <ArrowRight size={16} /></Link></div>
+          <div><span className="eyebrow">Discovery first</span><h2 className="font-display mt-5 text-3xl font-semibold tracking-[-.05em] text-white sm:text-4xl">The Portal acquires. The Network retains.</h2><p className="mt-5 max-w-md text-sm leading-7 text-slate-400">A stranger can immediately understand and explore a public identity. When they want to follow, Connect, react, or publish, Synapse invites them to become an intentional participant.</p><Link href="/mediarevolution" className="mt-7 inline-flex items-center gap-2 text-sm font-bold text-cyan-100 transition hover:gap-3">See the Portal experience <ArrowRight size={16} /></Link></div>
           <div className="grid gap-3 sm:grid-cols-2">
             {["Account", "Profile", "Portal", "Nodes", "Signals", "Network"].map((item, index) => <div key={item} className={`rounded-2xl border p-5 ${index === 2 || index === 5 ? "border-cyan-200/25 bg-cyan-300/[.07]" : "border-white/[.08] bg-white/[.02]"}`}><p className="text-[10px] font-extrabold uppercase tracking-[.14em] text-slate-600">0{index + 1}</p><p className="font-display mt-5 text-lg font-semibold text-white">{item}</p><p className="mt-1 text-xs leading-5 text-slate-500">{["The secure sign-in that owns your Profiles.", "The identity being represented.", "The public interactive layer.", "Everything connected to identity.", "What the identity publishes.", "The relationship system."][index]}</p></div>)}
           </div>
@@ -136,7 +136,7 @@ export default function Home() {
         </div>
       </section>
 
-      <footer className="relative z-10 border-t border-white/[.07] px-4 py-8 sm:px-6 lg:px-8"><div className="mx-auto flex max-w-7xl flex-col gap-4 text-xs text-slate-600 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-center gap-2 font-semibold text-slate-400"><Network size={14} className="text-cyan-200" /> Synapse · Identity, in motion.</div><div className="flex gap-5"><a href="#model" className="hover:text-slate-300">Principles</a><a href="#membership" className="hover:text-slate-300">Membership</a><Link href="/@alex" className="hover:text-slate-300">Demo Portal</Link></div></div></footer>
+      <footer className="relative z-10 border-t border-white/[.07] px-4 py-8 sm:px-6 lg:px-8"><div className="mx-auto flex max-w-7xl flex-col gap-4 text-xs text-slate-600 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-center gap-2 font-semibold text-slate-400"><Network size={14} className="text-cyan-200" /> Synapse · Identity, in motion.</div><div className="flex gap-5"><a href="#model" className="hover:text-slate-300">Principles</a><a href="#membership" className="hover:text-slate-300">Membership</a><Link href="/mediarevolution" className="hover:text-slate-300">Demo Portal</Link></div></div></footer>
     </main>
   );
 }
