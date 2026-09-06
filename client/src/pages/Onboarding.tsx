@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
 import NeuralAccessLogin from "@/components/ui/neural-access-login";
 import { trpc } from "@/lib/trpc";
+import { INTERESTS, type InterestKey } from "@shared/interests";
 
 const profileTypes = [
   ["personal", "Personal", "A person and everything connected to them."],
@@ -24,6 +25,7 @@ export default function Onboarding() {
   const [type, setType] = useState<ProfileType>("creator");
   const [bio, setBio] = useState("");
   const [location, setLocation] = useState("");
+  const [interests, setInterests] = useState<InterestKey[]>([]);
   const existingProfiles = trpc.profile.my.useQuery(undefined, { enabled: isAuthenticated });
   const createProfile = trpc.profile.create.useMutation({
     onSuccess: (profile) => {
@@ -35,7 +37,7 @@ export default function Onboarding() {
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    createProfile.mutate({ username, displayName, type, bio: bio || undefined, location: location || undefined });
+    createProfile.mutate({ username, displayName, type, bio: bio || undefined, location: location || undefined, interests });
   };
 
   if (loading) return <main className="min-h-screen bg-[#070b14]" />;
@@ -52,6 +54,7 @@ export default function Onboarding() {
           <div className="flex items-center gap-3 border-b border-white/[.08] pb-6"><span className="grid h-10 w-10 place-items-center rounded-2xl bg-violet-300/10 text-violet-200"><Sparkles size={19} /></span><div><p className="font-display font-semibold text-white">{existingProfiles.data?.length ? "A new Profile" : "Your first Profile"}</p><p className="mt-0.5 text-xs text-slate-500">This can represent you or something you&apos;re building.</p></div></div>
           <div className="mt-7 grid gap-5 sm:grid-cols-2"><label className="text-xs font-bold text-slate-300">Display name<input required value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="Alex Revwoods" className="mt-2 h-11 w-full rounded-xl border border-white/10 bg-slate-950/45 px-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-cyan-200/50" /></label><label className="text-xs font-bold text-slate-300">Synapse handle<div className="mt-2 flex h-11 items-center rounded-xl border border-white/10 bg-slate-950/45 px-3 focus-within:border-cyan-200/50"><span className="text-sm font-bold text-slate-500">@</span><input required value={username} onChange={(event) => setUsername(event.target.value.replace(/^@/, "").replace(/\s/g, ""))} placeholder="alex" className="min-w-0 flex-1 bg-transparent pl-1 text-sm text-white outline-none placeholder:text-slate-600" /></div><span className="mt-1.5 block text-[10px] font-medium text-slate-600">Letters, numbers, and underscores only.</span></label></div>
           <fieldset className="mt-6"><legend className="text-xs font-bold text-slate-300">What is this identity?</legend><div className="mt-3 grid gap-2 sm:grid-cols-2">{profileTypes.map(([value, label, description]) => <button type="button" key={value} onClick={() => setType(value)} className={`rounded-xl border p-3 text-left transition ${type === value ? "border-cyan-200/50 bg-cyan-300/[.08]" : "border-white/[.08] bg-white/[.02] hover:border-white/20"}`}><span className="flex items-center justify-between text-xs font-extrabold text-white">{label}{type === value && <Check size={14} className="text-cyan-200" />}</span><span className="mt-1.5 block text-[10px] leading-4 text-slate-500">{description}</span></button>)}</div></fieldset>
+          <fieldset className="mt-6"><legend className="flex items-center justify-between gap-3 text-xs font-bold text-slate-300"><span>What are you here for? <span className="font-medium text-slate-600">optional</span></span><span className="text-[10px] font-medium text-slate-600">{interests.length}/6</span></legend><p className="mt-1.5 text-[11px] leading-5 text-slate-500">Pick a few interests to receive transparent, shared-interest follow suggestions in Discover. This never changes the public Profile.</p><div className="mt-3 flex flex-wrap gap-2">{INTERESTS.map((interest) => { const selected = interests.includes(interest.key); const unavailable = !selected && interests.length >= 6; return <button type="button" key={interest.key} disabled={unavailable} onClick={() => setInterests((current) => selected ? current.filter((key) => key !== interest.key) : [...current, interest.key])} className={`rounded-full border px-3 py-2 text-[11px] font-bold transition disabled:cursor-not-allowed disabled:opacity-35 ${selected ? "border-violet-200/45 bg-violet-300/[.12] text-violet-100" : "border-white/[.09] bg-white/[.025] text-slate-400 hover:border-white/20 hover:text-slate-200"}`}>{selected && <Check size={12} className="mr-1 inline-block" />}{interest.label}</button>; })}</div></fieldset>
           <div className="mt-6 grid gap-5 sm:grid-cols-2"><label className="text-xs font-bold text-slate-300">Location <span className="font-medium text-slate-600">optional</span><input value={location} onChange={(event) => setLocation(event.target.value)} placeholder="Toronto, Canada" className="mt-2 h-11 w-full rounded-xl border border-white/10 bg-slate-950/45 px-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-cyan-200/50" /></label><label className="text-xs font-bold text-slate-300">Short bio <span className="font-medium text-slate-600">optional</span><input value={bio} onChange={(event) => setBio(event.target.value)} placeholder="What should people know?" className="mt-2 h-11 w-full rounded-xl border border-white/10 bg-slate-950/45 px-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-cyan-200/50" /></label></div>
           <button disabled={createProfile.isPending} className="primary-button mt-8 w-full disabled:cursor-not-allowed disabled:opacity-60">{createProfile.isPending ? "Creating identity…" : "Create free Profile and build Portal"} <ArrowRight size={16} /></button>
         </form>

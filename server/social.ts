@@ -4,6 +4,7 @@ import {
   createSignalComment,
   getDiscoverablePortals,
   getDiscoveryFeed,
+  getFollowSuggestions,
   getNotificationsForProfile,
   getPublicSignalFeed,
   getTimelineForProfile,
@@ -13,6 +14,12 @@ import {
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 
 export const socialRouter = router({
+  suggestions: protectedProcedure.input(z.object({ profileId: z.number().int().positive() })).query(async ({ ctx, input }) => {
+    const suggestions = await getFollowSuggestions(ctx.user.id, input.profileId);
+    if (!suggestions) throw new TRPCError({ code: "NOT_FOUND", message: "Profile not found" });
+    return suggestions;
+  }),
+
   discover: publicProcedure
     .input(z.object({ query: z.string().trim().max(48).optional(), profileType: z.enum(["all", "personal", "creator", "business", "organization", "project"]).optional(), currentProfileId: z.number().int().positive().optional() }))
     .query(({ input }) => getDiscoverablePortals(input)),

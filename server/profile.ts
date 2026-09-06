@@ -5,11 +5,15 @@ import {
   createProfileForUser,
   getAccountMembership,
   getBuilderProfile,
+  getOwnedProfile,
+  getProfileInterestKeys,
   getProfilesForUser,
+  saveOwnedProfileInterests,
   setProfilePublished,
   updateOwnedProfile,
 } from "./db";
 import { canUseSkin, isKnownSkin, normalizeSkinId } from "../shared/skins";
+import { INTEREST_KEYS } from "../shared/interests";
 import { protectedProcedure, router } from "./_core/trpc";
 
 const profileTypes = ["personal", "creator", "business", "organization", "project"] as const;
@@ -25,10 +29,23 @@ const createProfileInput = z.object({
   type: z.enum(profileTypes),
   bio: z.string().trim().max(420).optional(),
   location: z.string().trim().max(160).optional(),
+  interests: z.array(z.enum(INTEREST_KEYS)).max(6).optional().default([]),
 });
 
 export const profileRouter = router({
   my: protectedProcedure.query(({ ctx }) => getProfilesForUser(ctx.user.id)),
+
+  interests: protectedProcedure.input(z.object({ profileId: z.number().int().positive() })).query(async ({ ctx, input }) => {
+    const profile = await getOwnedProfile(ctx.user.id, input.profileId);
+    if (!profile) throw new TRPCError({ code: "NOT_FOUND", message: "Profile not found" });
+    return getProfileInterestKeys(input.profileId);
+  }),
+
+  saveInterests: protectedProcedure.input(z.object({ profileId: z.number().int().positive(), interests: z.array(z.enum(INTEREST_KEYS)).max(6) })).mutation(async ({ ctx, input }) => {
+    const interests = await saveOwnedProfileInterests(ctx.user.id, input.profileId, input.interests);
+    if (!interests) throw new TRPCError({ code: "NOT_FOUND", message: "Profile not found" });
+    return interests;
+  }),
 
   builder: protectedProcedure.input(z.object({ profileId: z.number().int().positive() })).query(async ({ ctx, input }) => {
     const builder = await getBuilderProfile(ctx.user.id, input.profileId);
@@ -43,8 +60,10 @@ export const profileRouter = router({
       if (existingProfiles.length >= profileAllowance) {
         throw new TRPCError({ code: "FORBIDDEN", message: `Your ${membership?.plan || "current"} membership includes up to ${profileAllowance} ${profileAllowance === 1 ? "Profile" : "Profiles"}.` });
       }
-      const profile = await createProfileForUser(ctx.user.id, input);
+      const { interests, ...profileInput } = input;
+      const profile = await createProfileForUser(ctx.user.id, profileInput);
       if (!profile) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Profile could not be created" });
+      await saveOwnedProfileInterests(ctx.user.id, profile.id, interests);
       return profile;
     } catch (error) {
       if (error instanceof TRPCError) throw error;

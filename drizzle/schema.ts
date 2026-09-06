@@ -90,6 +90,22 @@ export const profileBadges = mysqlTable(
   (table) => ({ profileIndex: index("profile_badges_profile_idx").on(table.profileId), profileBadgeUnique: uniqueIndex("profile_badges_profile_badge_unique").on(table.profileId, table.badgeKey) }),
 );
 
+/** Interest tags are selected by the Profile owner and power opt-in, explainable discovery suggestions. */
+export const profileInterests = mysqlTable(
+  "profile_interests",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    profileId: int("profileId").notNull(),
+    interestKey: varchar("interestKey", { length: 48 }).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    profileIndex: index("profile_interests_profile_idx").on(table.profileId),
+    interestIndex: index("profile_interests_interest_idx").on(table.interestKey),
+    profileInterestUnique: uniqueIndex("profile_interests_profile_interest_unique").on(table.profileId, table.interestKey),
+  }),
+);
+
 /** Delivery is opt-in by Profile; in-app notifications remain available independently. */
 export const notificationPreferences = mysqlTable(
   "notification_preferences",

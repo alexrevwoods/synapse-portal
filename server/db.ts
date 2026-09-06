@@ -9,6 +9,7 @@ import {
   notifications,
   notificationPreferences,
   profileBadges,
+  profileInterests,
   profileMembers,
   profileNodes,
   profileRelationships,
@@ -74,6 +75,24 @@ export async function getProfilesForUser(userId: number) {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(profiles).where(eq(profiles.ownerUserId, userId)).orderBy(asc(profiles.createdAt));
+}
+
+export async function getProfileInterestKeys(profileId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db.select({ interestKey: profileInterests.interestKey }).from(profileInterests).where(eq(profileInterests.profileId, profileId));
+  return rows.map((row) => row.interestKey);
+}
+
+export async function saveOwnedProfileInterests(userId: number, profileId: number, interestKeys: string[]) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is unavailable");
+  const profile = await getOwnedProfile(userId, profileId);
+  if (!profile) return null;
+  const uniqueKeys = Array.from(new Set(interestKeys));
+  await db.delete(profileInterests).where(eq(profileInterests.profileId, profileId));
+  if (uniqueKeys.length) await db.insert(profileInterests).values(uniqueKeys.map((interestKey) => ({ profileId, interestKey })));
+  return uniqueKeys;
 }
 
 export async function getOwnedProfile(userId: number, profileId: number) {
@@ -447,6 +466,54 @@ export async function getDiscoveryFeed(input: { query?: string; profileType?: Di
   const blockRows = await db.select().from(blocks).where(or(eq(blocks.sourceProfileId, input.currentProfileId), eq(blocks.targetProfileId, input.currentProfileId)));
   const blockedProfileIds = new Set(blockRows.map((block) => block.sourceProfileId === input.currentProfileId ? block.targetProfileId : block.sourceProfileId));
   return enrichSignals(rows.filter((row) => !blockedProfileIds.has(row.profile.id)), input.currentProfileId);
+}
+
+export async function getFollowSuggestions(userId: number, profileId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const [activeProfile, userProfiles] = await Promise.all([getOwnedProfile(userId, profileId), getProfilesForUser(userId)]);
+  if (!activeProfile) return null;
+  const ownProfileIds = new Set(userProfiles.map((profile) => profile.id));
+  const [interestRows, relationshipRows, blockRows, candidates] = await Promise.all([
+    db.select({ interestKey: profileInterests.interestKey }).from(profileInterests).where(eq(profileInterests.profileId, profileId)),
+    db.select().from(profileRelationships).where(or(eq(profileRelationships.sourceProfileId, profileId), eq(profileRelationships.targetProfileId, profileId))),
+    db.select().from(blocks).where(or(eq(blocks.sourceProfileId, profileId), eq(blocks.targetProfileId, profileId))),
+    db.select().from(profiles).where(eq(profiles.isPublished, true)).orderBy(desc(profiles.updatedAt)).limit(80),
+  ]);
+  const selectedInterests = new Set(interestRows.map((row) => row.interestKey));
+  const alreadyRelated = new Set(relationshipRows.filter((relationship) => relationship.status !== "declined").map((relationship) => relationship.sourceProfileId === profileId ? relationship.targetProfileId : relationship.sourceProfileId));
+  const blockedProfileIds = new Set(blockRows.map((block) => block.sourceProfileId === profileId ? block.targetProfileId : block.sourceProfileId));
+  const directConnectionIds = relationshipRows.filter((relationship) => relationship.type === "connection" && relationship.status === "accepted").map((relationship) => relationship.sourceProfileId === profileId ? relationship.targetProfileId : relationship.sourceProfileId);
+  const available = candidates.filter((candidate) => !ownProfileIds.has(candidate.id) && !alreadyRelated.has(candidate.id) && !blockedProfileIds.has(candidate.id));
+  if (!available.length) return [];
+  const candidateIds = available.map((candidate) => candidate.id);
+  const [candidateInterests, mutualRows] = await Promise.all([
+    db.select().from(profileInterests).where(inArray(profileInterests.profileId, candidateIds)),
+    directConnectionIds.length ? db.select().from(profileRelationships).where(and(eq(profileRelationships.type, "connection"), eq(profileRelationships.status, "accepted"), or(inArray(profileRelationships.sourceProfileId, directConnectionIds), inArray(profileRelationships.targetProfileId, directConnectionIds)))) : Promise.resolve([]),
+  ]);
+  const interestMap = new Map<number, string[]>();
+  candidateInterests.forEach((row) => interestMap.set(row.profileId, [...(interestMap.get(row.profileId) || []), row.interestKey]));
+  const mutualCount = new Map<number, number>();
+  mutualRows.forEach((relationship) => {
+    const candidateId = directConnectionIds.includes(relationship.sourceProfileId) ? relationship.targetProfileId : relationship.sourceProfileId;
+    if (candidateIds.includes(candidateId) && candidateId !== profileId) mutualCount.set(candidateId, (mutualCount.get(candidateId) || 0) + 1);
+  });
+  const scored = available.map((candidate) => {
+    const sharedInterestKeys = (interestMap.get(candidate.id) || []).filter((key) => selectedInterests.has(key));
+    const sharedConnections = mutualCount.get(candidate.id) || 0;
+    const sameType = candidate.type === activeProfile.type;
+    const score = sharedInterestKeys.length * 12 + sharedConnections * 5 + (sameType ? 2 : 0);
+    return { profile: candidate, sharedInterestKeys, sharedConnections, score };
+  });
+  const ranked = scored.filter((item) => item.score > 0).sort((first, second) => second.score - first.score || second.profile.updatedAt.getTime() - first.profile.updatedAt.getTime()).slice(0, 8);
+  const visibleSuggestions = ranked.length ? ranked : scored.sort((first, second) => second.profile.updatedAt.getTime() - first.profile.updatedAt.getTime()).slice(0, 4);
+  return Promise.all(visibleSuggestions.map(async (item) => ({
+    profile: item.profile,
+    badges: await getPublicProfileBadges(item.profile),
+    sharedInterestKeys: item.sharedInterestKeys,
+    sharedConnections: item.sharedConnections,
+    reason: item.sharedInterestKeys.length ? `Shared interests: ${item.sharedInterestKeys.slice(0, 2).join(", ")}` : item.sharedConnections ? `${item.sharedConnections} shared Connection${item.sharedConnections === 1 ? "" : "s"}` : item.profile.type === activeProfile.type ? `Also a ${item.profile.type}` : "Recently active public Portal",
+  })));
 }
 
 export async function getTimelineForProfile(userId: number, profileId: number) {
