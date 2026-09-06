@@ -6,6 +6,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import PlatformSkinInitializer from "./components/PlatformSkinInitializer";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Account from "./pages/Account";
+import Access from "./pages/Access";
 import BrandStudio from "./pages/BrandStudio";
 import Home from "./pages/Home";
 import Insights from "./pages/Insights";
@@ -25,6 +26,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/account" component={Account} />
+      <Route path="/access" component={Access} />
       <Route path="/skins" component={SkinStudio} />
       <Route path="/brand/:profileId" component={BrandStudio} />
       <Route path="/join" component={Join} />

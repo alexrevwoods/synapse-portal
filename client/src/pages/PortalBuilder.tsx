@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
 import { Link, useRoute } from "wouter";
-import { ArrowLeft, BarChart3, Bell, ChevronRight, Clock3, ExternalLink, Globe2, LayoutDashboard, Network, Plus, Save, Send, ShieldAlert, Sparkles } from "lucide-react";
+import { ArrowLeft, BarChart3, Bell, Clock3, ExternalLink, Globe2, LayoutDashboard, Network, Plus, Save, Send, ShieldAlert, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { startLogin } from "@/const";
 import { trpc } from "@/lib/trpc";
 import NodeGraphEditor from "@/components/NodeGraphEditor";
 import ProfileSwitcher from "@/components/ProfileSwitcher";
 import PortalThemePicker from "@/components/PortalThemePicker";
 import ProfileBadgeManager from "@/components/ProfileBadgeManager";
+import NeuralAccessLogin from "@/components/ui/neural-access-login";
 
 const nodeOptions = [["web", "Website"], ["content", "Content"], ["social", "Social account"], ["identity", "Connected identity"], ["conversion", "Contact or CTA"], ["synapse", "Synapse destination"], ["event", "Event"], ["product", "Product"], ["booking", "Booking"], ["team", "Team"]] as const;
 type NodeType = (typeof nodeOptions)[number][0];
@@ -47,7 +47,7 @@ export default function PortalBuilder() {
   const publish = trpc.profile.setPublished.useMutation({ onSuccess: (profile) => { toast.success(profile.isPublished ? "Portal published to the Network" : "Portal returned to draft mode"); refresh(); }, onError: (error) => toast.error(error.message) });
   const createNode = trpc.profile.createNode.useMutation({ onSuccess: () => { toast.success("Node added to your Portal"); setNodeTitle(""); setNodeSubtitle(""); setNodeUrl(""); setNodeDescription(""); setShowNodeForm(false); refresh(); }, onError: (error) => toast.error(error.message) });
   if (loading) return <main className="min-h-screen bg-[#070b14]" />;
-  if (!isAuthenticated) return <main className="grid min-h-screen place-items-center bg-[#070b14] px-4"><div className="max-w-md rounded-3xl border border-white/10 bg-slate-900/60 p-8 text-center"><Network className="mx-auto text-cyan-100" /><h1 className="font-display mt-5 text-2xl font-semibold text-white">Your Portal Builder awaits</h1><p className="mt-3 text-sm leading-6 text-slate-400">Create a free Account to build and publish a Profile. No payment details are required.</p><button onClick={() => { window.sessionStorage.setItem("synapse-post-login", `/builder/${profileId}`); startLogin(); }} className="primary-button mt-7 w-full">Create free Account <ChevronRight size={16} /></button></div></main>;
+  if (!isAuthenticated) return <NeuralAccessLogin nextPath={`/builder/${profileId}`} mode="create" />;
   if (builder.isLoading) return <main className="min-h-screen bg-[#070b14] p-6 text-sm font-bold text-slate-500">Loading Portal Builder…</main>;
   if (!builder.data) return <main className="grid min-h-screen place-items-center bg-[#070b14] px-4"><div className="text-center"><p className="font-display text-2xl font-semibold text-white">Profile not found</p><Link href="/onboarding" className="primary-button mt-6">Create a free Profile</Link></div></main>;
   const { profile, nodes, connections } = builder.data;

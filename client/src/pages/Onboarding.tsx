@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { ArrowLeft, ArrowRight, Check, Network, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { startLogin } from "@/const";
+import NeuralAccessLogin from "@/components/ui/neural-access-login";
 import { trpc } from "@/lib/trpc";
 
 const profileTypes = [
@@ -40,7 +40,7 @@ export default function Onboarding() {
 
   if (loading) return <main className="min-h-screen bg-[#070b14]" />;
   if (!isAuthenticated) {
-    return <main className="grid min-h-screen place-items-center bg-[#070b14] px-4"><div className="max-w-md rounded-3xl border border-white/10 bg-slate-900/60 p-8 text-center"><span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-cyan-200/10 text-cyan-100"><Network /></span><h1 className="font-display mt-5 text-2xl font-semibold text-white">Build your Synapse</h1><p className="mt-3 text-sm leading-6 text-slate-400">Create a free Account to establish the Profile that will own your public Portal. No payment details are required.</p><button onClick={() => startLogin()} className="primary-button mt-7 w-full">Create free Account <ArrowRight size={16} /></button><Link href="/" className="mt-5 inline-flex text-xs font-bold text-slate-500 hover:text-cyan-100">Back to discovery</Link></div></main>;
+    return <NeuralAccessLogin nextPath="/onboarding" mode="create" />;
   }
 
   return (

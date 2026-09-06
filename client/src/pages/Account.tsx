@@ -3,9 +3,8 @@ import { Link } from "wouter";
 import { ArrowLeft, Bell, ExternalLink, Network, Palette, Plus, ShieldCheck, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { startLogin } from "@/const";
 import { trpc } from "@/lib/trpc";
-import SynapseMark from "@/components/SynapseMark";
+import NeuralAccessLogin from "@/components/ui/neural-access-login";
 
 function initials(name: string) { return name.split(" ").filter(Boolean).slice(0, 2).map((item) => item[0]).join("").toUpperCase(); }
 
@@ -19,7 +18,7 @@ export default function Account() {
 
   useEffect(() => { if (!overview.data?.profiles.length || activeProfileId) return; const saved = Number(window.localStorage.getItem("synapse-active-profile-id")); setActiveProfileId(overview.data.profiles.some((profile) => profile.id === saved) ? saved : overview.data.profiles[0].id); }, [overview.data, activeProfileId]);
   if (loading) return <main className="min-h-screen bg-[#070b14]" />;
-  if (!isAuthenticated) return <main className="grid min-h-screen place-items-center bg-[#070b14] px-4"><div className="w-full max-w-md rounded-3xl border border-white/10 bg-[linear-gradient(145deg,rgba(18,29,51,.92),rgba(8,12,23,.96))] p-6 text-center shadow-[0_30px_70px_rgba(0,0,0,.35)] sm:p-8"><SynapseMark className="mx-auto" label={false} /><span className="eyebrow mt-6">Free Account access</span><h1 className="font-display mt-4 text-3xl font-semibold tracking-[-.05em] text-white">Create or open your Portals.</h1><p className="mt-3 text-sm leading-6 text-slate-400">Sign in to the Account you used before—or create one now. It&apos;s free, with no payment details required.</p><button onClick={() => { window.sessionStorage.setItem("synapse-post-login", "/account"); startLogin(); }} className="primary-button mt-7 w-full">Continue to My Portals</button><Link href="/" className="mt-5 inline-flex text-xs font-bold text-slate-500 transition hover:text-cyan-100">Back to discovery</Link></div></main>;
+  if (!isAuthenticated) return <NeuralAccessLogin nextPath="/account" />;
   if (overview.isLoading) return <main className="min-h-screen bg-[#070b14] p-6 text-sm font-bold text-slate-500">Loading your Portals…</main>;
   if (!overview.data) return <main className="min-h-screen bg-[#070b14]" />;
   const { membership, profiles } = overview.data;

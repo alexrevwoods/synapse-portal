@@ -62,7 +62,7 @@ export default function Home() {
           <a href="#membership" className="transition hover:text-cyan-100">Membership</a>
           <Link href={demoPath} className="transition hover:text-cyan-100">Explore a Portal</Link>
         </nav>
-        {isAuthenticated ? <Link href="/account" className="secondary-button !rounded-full !px-4 !py-2.5 !text-xs">My Portals</Link> : <div className="flex items-center gap-3"><Link href="/account" className="hidden text-xs font-bold text-slate-400 transition hover:text-cyan-100 sm:block">Sign in</Link><Link href="/join" className="secondary-button !rounded-full !px-4 !py-2.5 !text-xs">Join Synapse</Link></div>}
+        {isAuthenticated ? <Link href="/account" className="secondary-button !rounded-full !px-4 !py-2.5 !text-xs">My Portals</Link> : <div className="flex items-center gap-3"><Link href="/access?next=/account" className="hidden text-xs font-bold text-slate-400 transition hover:text-cyan-100 sm:block">Sign in</Link><Link href="/join" className="secondary-button !rounded-full !px-4 !py-2.5 !text-xs">Join Synapse</Link></div>}
       </header>
 
       <section className="relative z-10 mx-auto grid max-w-7xl gap-12 px-4 pb-20 pt-16 sm:px-6 lg:grid-cols-[1.03fr_.97fr] lg:items-center lg:px-8 lg:pb-28 lg:pt-24">
