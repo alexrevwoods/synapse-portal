@@ -518,3 +518,27 @@ body {
   .portal-map-shell.is-fullscreen .portal-stage { cursor: grab; }
   .portal-map-shell.is-fullscreen .portal-stage:active { cursor: grabbing; }
 }
+
+/* A selected destination belongs to its Node, so every viewport uses the same contextual popover. */
+.map-node-popover { position: absolute; z-index: 28; width: min(18rem, calc(100vw - 2rem)); pointer-events: none; opacity: 0; transform: translate(-50%, calc(-100% - .9rem)) scale(.97); transform-origin: bottom center; transition: opacity 170ms var(--ease-out), transform 210ms var(--ease-out); }
+.map-node-popover.is-open { pointer-events: auto; opacity: 1; transform: translate(-50%, calc(-100% - .9rem)) scale(1); }
+.map-node-popover.is-below { transform: translate(-50%, 1rem) scale(.97); transform-origin: top center; }
+.map-node-popover.is-below.is-open { transform: translate(-50%, 1rem) scale(1); }
+.map-node-popover.is-near-left { transform: translate(-8%, calc(-100% - .9rem)) scale(.97); transform-origin: bottom left; }
+.map-node-popover.is-near-left.is-open { transform: translate(-8%, calc(-100% - .9rem)) scale(1); }
+.map-node-popover.is-near-right { transform: translate(-92%, calc(-100% - .9rem)) scale(.97); transform-origin: bottom right; }
+.map-node-popover.is-near-right.is-open { transform: translate(-92%, calc(-100% - .9rem)) scale(1); }
+.map-node-popover.is-near-left.is-below { transform: translate(-8%, 1rem) scale(.97); transform-origin: top left; }
+.map-node-popover.is-near-left.is-below.is-open { transform: translate(-8%, 1rem) scale(1); }
+.map-node-popover.is-near-right.is-below { transform: translate(-92%, 1rem) scale(.97); transform-origin: top right; }
+.map-node-popover.is-near-right.is-below.is-open { transform: translate(-92%, 1rem) scale(1); }
+.map-node-popover__pulse { position: absolute; inset: -.4rem; border: 1px solid color-mix(in srgb, var(--skin-primary) 46%, transparent); border-radius: 1.25rem; opacity: 0; pointer-events: none; }
+.map-node-popover.is-open .map-node-popover__pulse { animation: node-overlay-pulse 2.3s var(--ease-out) infinite; }
+.map-node-popover__surface { position: relative; overflow: hidden; border: 1px solid color-mix(in srgb, var(--skin-primary) 50%, rgba(255,255,255,.14)); border-radius: 1.05rem; background: linear-gradient(135deg, color-mix(in srgb, var(--skin-primary) 16%, rgba(10,18,35,.97)), color-mix(in srgb, var(--skin-secondary) 13%, rgba(6,10,20,.99))); box-shadow: 0 20px 52px rgba(0,0,0,.58), inset 0 1px 0 rgba(255,255,255,.13); padding: .9rem; }
+.map-node-popover__surface::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(115deg, rgba(255,255,255,.1), transparent 38%); }
+@media (max-width: 680px) {
+  .portal-map-shell.is-fullscreen .map-node-popover { right: auto; left: auto; width: min(19rem, calc(100vw - 2rem)); max-width: calc(100vw - 2rem); }
+  .portal-map-shell.is-fullscreen .map-node-popover__surface { border-radius: 1.15rem; padding: .92rem; }
+  .portal-map-shell.is-fullscreen:has(.map-node-popover.is-open) .portal-map-filter, .portal-map-shell.is-fullscreen:has(.map-node-popover.is-open) .portal-map-minimap, .portal-map-shell.is-fullscreen:has(.map-node-popover.is-open) .portal-map-gesture-hint { opacity: 0; pointer-events: none; transform: translateY(.75rem); }
+}
+@media (prefers-reduced-motion: reduce) { .map-node-popover.is-open .map-node-popover__pulse { animation: none; } }

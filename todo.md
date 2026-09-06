@@ -129,3 +129,10 @@ The release uses **WhoAreWe** spelling exactly, presents **Where Identity Meets 
 - [x] Move the selected destination sheet into a protected clearance zone above full-map bottom controls.
 - [x] Fade and disable the full-map filters, minimap, and gesture hint while destination detail is open.
 - [x] Verify the corrected 390px mobile map, TypeScript, automated tests, and production build.
+
+## Contextual Portal Map Details
+
+- [x] Replace separate mobile and desktop destination cards with one Node-anchored detail popover.
+- [x] Position details above or below the selected Node and constrain edge nodes within the map canvas.
+- [x] Preserve a clear mobile full-map control layout when a Node detail is open.
+- [x] Validate shared behavior, TypeScript, automated tests, and the production build.
