@@ -123,3 +123,9 @@ The release uses **WhoAreWe** spelling exactly, presents **Where Identity Meets 
 - [x] Extend full-screen map mode to desktop with an edge-to-edge canvas and persistent **Minimize** action.
 - [x] Preserve all map navigation tools, Portal controls, minimap, zooming, and drag panning in desktop full-network mode.
 - [x] Verify the desktop full-map view, TypeScript, automated tests, and production build.
+
+## Mobile Full-Map Destination Detail
+
+- [x] Move the selected destination sheet into a protected clearance zone above full-map bottom controls.
+- [x] Fade and disable the full-map filters, minimap, and gesture hint while destination detail is open.
+- [x] Verify the corrected 390px mobile map, TypeScript, automated tests, and production build.

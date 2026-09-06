@@ -467,6 +467,9 @@ body {
   .portal-map-shell.is-fullscreen .portal-map-minimap button { width: 2.3rem; height: 2.3rem; border-radius: .66rem; font-size: .62rem; }
   .portal-map-shell.is-fullscreen .portal-map-minimap button i { width: .42rem; height: .42rem; right: -.18rem; bottom: -.18rem; }
   .portal-map-shell.is-fullscreen .portal-map-gesture-hint { right: .65rem; bottom: 7.55rem; left: .65rem; }
+  .portal-map-shell.is-fullscreen .mobile-node-overlay { z-index: 28; right: .75rem; bottom: 8.4rem; left: .75rem; max-width: 31rem; margin: 0 auto; transform-origin: bottom center; }
+  .portal-map-shell.is-fullscreen .mobile-node-overlay__surface { border-radius: 1.2rem; padding: 1rem; box-shadow: 0 24px 64px rgba(0,0,0,.62), 0 0 0 1px rgba(0,216,255,.06); }
+  .portal-map-shell.is-fullscreen:has(.mobile-node-overlay.is-open) .portal-map-filter, .portal-map-shell.is-fullscreen:has(.mobile-node-overlay.is-open) .portal-map-minimap, .portal-map-shell.is-fullscreen:has(.mobile-node-overlay.is-open) .portal-map-gesture-hint { opacity: 0; pointer-events: none; transform: translateY(.75rem); }
   .portal-full-network-bar { position: absolute; z-index: 30; top: .6rem; right: .6rem; left: .6rem; display: flex; align-items: center; justify-content: space-between; border: 1px solid rgba(255,255,255,.10); border-radius: .85rem; background: rgba(7,12,24,.9); padding: .5rem .55rem .5rem .75rem; box-shadow: 0 10px 28px rgba(0,0,0,.24); backdrop-filter: blur(14px); }
   .portal-full-network-bar div { min-width: 0; }
   .portal-full-network-bar span, .portal-full-network-bar strong { display: block; }
