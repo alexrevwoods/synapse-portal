@@ -136,3 +136,10 @@ The release uses **WhoAreWe** spelling exactly, presents **Where Identity Meets 
 - [x] Position details above or below the selected Node and constrain edge nodes within the map canvas.
 - [x] Preserve a clear mobile full-map control layout when a Node detail is open.
 - [x] Validate shared behavior, TypeScript, automated tests, and the production build.
+
+## Map Detail and Hover Refinements
+
+- [x] Add directional leader lines between selected Nodes and contextual detail popovers.
+- [x] Anchor leader lines toward the selected Node when details are edge-aligned.
+- [x] Add desktop-only compact hover previews with Node title and category context.
+- [x] Verify hover and click interactions, TypeScript, automated tests, and the production build.
