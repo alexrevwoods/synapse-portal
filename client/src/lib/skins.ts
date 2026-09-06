@@ -1,4 +1,4 @@
-import { getSkin, SYNAPSE_SKINS } from "@shared/skins";
+import { getSkin, WHOAREWE_SKINS } from "@shared/skins";
 
 export function resolveSkin(id?: string | null, custom?: { primary?: string | null; secondary?: string | null; base?: string | null }) {
   const skin = getSkin(id);
@@ -19,17 +19,17 @@ export function applyPlatformSkin(id?: string | null, custom?: { primary?: strin
   root.style.setProperty("--skin-secondary", skin.secondary);
   root.style.setProperty("--skin-base", skin.base);
   root.style.setProperty("--skin-glow", `${skin.primary}2f`);
-  root.dataset.synapseSkin = skin.id;
+  root.dataset.whoareweSkin = skin.id;
 }
 
 export function getGuestSkin() {
   if (typeof window === "undefined") return "signal";
-  return window.localStorage.getItem("synapse-guest-skin") || "signal";
+  return window.localStorage.getItem("whoarewe-guest-skin") || "signal";
 }
 
 export function setGuestSkin(id: string) {
-  if (typeof window !== "undefined") window.localStorage.setItem("synapse-guest-skin", id);
+  if (typeof window !== "undefined") window.localStorage.setItem("whoarewe-guest-skin", id);
   applyPlatformSkin(id);
 }
 
-export const HOME_PREVIEW_SKINS = SYNAPSE_SKINS.slice(0, 3);
+export const HOME_PREVIEW_SKINS = WHOAREWE_SKINS.slice(0, 3);

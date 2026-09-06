@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { canUseSkin, getSkin, skinsForPlan } from "../shared/skins";
 
-describe("Synapse Skin library", () => {
+describe("WhoAreWe Skin library", () => {
   it("exposes the correct number of included Skins for every membership", () => {
     expect(skinsForPlan("core")).toHaveLength(6);
     expect(skinsForPlan("pulse")).toHaveLength(9);

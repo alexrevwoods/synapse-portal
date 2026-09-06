@@ -21,7 +21,7 @@ export const brandingRouter = router({
     .mutation(async ({ ctx, input }) => {
       const bytes = decodeImage(input.dataUrl, input.mimeType);
       const extension = input.mimeType === "image/png" ? "png" : input.mimeType === "image/jpeg" ? "jpg" : "webp";
-      const stored = await storagePut(`synapse/${ctx.user.id}/${input.profileId}/${input.asset}-${Date.now()}.${extension}`, bytes, input.mimeType);
+      const stored = await storagePut(`whoarewe/${ctx.user.id}/${input.profileId}/${input.asset}-${Date.now()}.${extension}`, bytes, input.mimeType);
       const profile = await updateOwnedProfile(ctx.user.id, input.profileId, input.asset === "avatar" ? { avatarUrl: stored.url } : { brandLogoUrl: stored.url });
       if (!profile) throw new TRPCError({ code: "NOT_FOUND", message: "Profile not found" });
       return { url: stored.url, profile };

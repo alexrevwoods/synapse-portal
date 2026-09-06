@@ -13,7 +13,7 @@ import {
   Video,
 } from "lucide-react";
 import HolographicCard from "./HolographicCard";
-import InteractiveSynapseNetwork from "./InteractiveSynapseNetwork";
+import ConnectedNetworkCanvas from "./ConnectedNetworkCanvas";
 
 type NodeId = "root" | "studio" | "film" | "music" | "newsletter" | "contact";
 
@@ -34,12 +34,12 @@ type PortalNode = {
 const nodes: PortalNode[] = [
   {
     id: "root",
-    label: "Alex Revwoods",
-    kind: "Creator · Toronto",
-    summary: "A filmmaker and founder building sharper stories for growing brands.",
-    detail: "Alex's Portal is a living map of current work, projects, and places to connect—not a list of links.",
-    action: "View profile",
-    actionNote: "2.4k followers · 148 connections",
+    label: "Media Revolution",
+    kind: "Business · Gatineau",
+    summary: "A technology company creating connected media, products, and opportunities.",
+    detail: "Media Revolution’s Portal brings its products, platforms, and public touchpoints into one connected view.",
+    action: "Explore Portal",
+    actionNote: "Technology · Media · Community",
     x: 50,
     y: 50,
     tone: "cyan",
@@ -47,12 +47,12 @@ const nodes: PortalNode[] = [
   },
   {
     id: "studio",
-    label: "North Star Studio",
+    label: "Media Revolution",
     kind: "Business",
-    summary: "Brand films and systems for companies with something real to say.",
-    detail: "A Synapse business identity connected to Alex's work and current collaborations.",
-    action: "Open studio",
-    actionNote: "Strategy · Film · Digital",
+    summary: "A public home for technology, media, and ambitious ideas.",
+    detail: "A business identity connected to the people, projects, and opportunities it brings together.",
+    action: "Visit website",
+    actionNote: "Technology · Media · Digital",
     x: 20,
     y: 28,
     tone: "violet",
@@ -60,12 +60,12 @@ const nodes: PortalNode[] = [
   },
   {
     id: "film",
-    label: "New work",
-    kind: "Film collection",
-    summary: "A curated set of narrative, campaign, and documentary work.",
-    detail: "Collections keep a Portal clear as it grows—one meaningful place for related work.",
-    action: "Watch reel",
-    actionNote: "06 selected films",
+    label: "Innovation",
+    kind: "What we are building",
+    summary: "Products, platforms, and projects shaping what comes next.",
+    detail: "Explore the initiatives behind the business, all connected with useful context.",
+    action: "Explore work",
+    actionNote: "Ideas · Products · Impact",
     x: 80,
     y: 29,
     tone: "cyan",
@@ -73,12 +73,12 @@ const nodes: PortalNode[] = [
   },
   {
     id: "music",
-    label: "Afterlight",
-    kind: "Music project",
-    summary: "Ambient sketches made between edits, released in small seasons.",
-    detail: "Creative projects can be first-class identities in the network, not just outbound destinations.",
-    action: "Listen now",
-    actionNote: "EP · 5 tracks",
+    label: "Community",
+    kind: "People and partnerships",
+    summary: "The people, collaborators, and communities around the work.",
+    detail: "A Portal makes the relationships behind an organization easier to discover and understand.",
+    action: "Meet the network",
+    actionNote: "Connections · Collaboration",
     x: 22,
     y: 72,
     tone: "violet",
@@ -86,12 +86,12 @@ const nodes: PortalNode[] = [
   },
   {
     id: "newsletter",
-    label: "Field Notes",
-    kind: "Signal series",
-    summary: "Thoughtful notes on creative direction, work, and durable digital identity.",
-    detail: "Signals are native Synapse publishing: visible by choice and connected to the rest of an identity.",
-    action: "Read Signals",
-    actionNote: "Weekly · 1,087 readers",
+    label: "Signals",
+    kind: "Updates from Media Revolution",
+    summary: "Updates, launches, and ideas worth sharing with the public network.",
+    detail: "Signals connect the story of the organization to its evolving network of people and opportunities.",
+    action: "Read updates",
+    actionNote: "Public updates · Conversations",
     x: 50,
     y: 18,
     tone: "cyan",
@@ -99,12 +99,12 @@ const nodes: PortalNode[] = [
   },
   {
     id: "contact",
-    label: "Work together",
+    label: "Connect",
     kind: "Contact",
-    summary: "Available for selected film, identity, and storytelling collaborations.",
-    detail: "A clear conversion node gives visitors a direct route from discovery to a meaningful next step.",
-    action: "Start a conversation",
-    actionNote: "Replies within 2 business days",
+    summary: "Explore ways to collaborate, connect, or start a conversation.",
+    detail: "A clear next step turns discovery into a meaningful opportunity.",
+    action: "Get in touch",
+    actionNote: "Partnerships · Inquiries",
     x: 79,
     y: 72,
     tone: "cyan",
@@ -159,7 +159,7 @@ export default function PortalGraph({ embedded = false }: { embedded?: boolean }
       <div className={`${embedded ? "hidden" : "flex"} mb-4 flex-wrap items-center justify-between gap-3 text-xs text-slate-400`}>
         <div className="flex items-center gap-2">
           <span className="signal-dot" aria-hidden="true" />
-          <span className="font-semibold uppercase tracking-[0.14em]">Public Portal · @alex</span>
+          <span className="font-semibold uppercase tracking-[0.14em]">Public Portal · @mediarevolution</span>
         </div>
         <button onClick={copyPortalLink} className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 font-semibold text-slate-300 transition hover:border-cyan-200/40 hover:text-cyan-100">
           {copied ? "Portal link copied" : "Share Portal"}
@@ -167,7 +167,7 @@ export default function PortalGraph({ embedded = false }: { embedded?: boolean }
       </div>
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        <InteractiveSynapseNetwork className="portal-stage">
+        <ConnectedNetworkCanvas className="portal-stage">
           <div className="absolute left-5 top-5 z-10 flex items-center gap-2 rounded-full border border-white/10 bg-slate-950/50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400 backdrop-blur-md">
             <span className="h-1.5 w-1.5 rounded-full bg-cyan-300 shadow-[0_0_10px_#77e6fb]" />
             Live identity map
@@ -204,7 +204,7 @@ export default function PortalGraph({ embedded = false }: { embedded?: boolean }
                 style={{ left: `${node.x}%`, top: `${node.y}%` } as CSSProperties}
                 className={`portal-node ${node.id === "root" ? "portal-node--root" : ""} ${active ? "is-active" : ""} ${related ? "is-related" : ""}`}
               >
-                <span className="portal-node__icon">{node.id === "root" ? "AR" : <Icon size={16} strokeWidth={1.9} />}</span>
+                <span className="portal-node__icon">{node.id === "root" ? "MR" : <Icon size={16} strokeWidth={1.9} />}</span>
                 <span className="portal-node__copy">
                   <span className="portal-node__label">{node.label}</span>
                   <span className="portal-node__kind">{node.kind}</span>
@@ -212,7 +212,7 @@ export default function PortalGraph({ embedded = false }: { embedded?: boolean }
               </button>
             );
           })}
-        </InteractiveSynapseNetwork>
+        </ConnectedNetworkCanvas>
 
         <HolographicCard className="flex min-h-[24rem] flex-col p-5 lg:min-h-full">
           <div className="mb-7 flex items-start justify-between gap-3">

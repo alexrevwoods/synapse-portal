@@ -1,157 +1,40 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { ArrowRight, Check, Compass, GitFork, Layers3, Network, Sparkles, UsersRound } from "lucide-react";
-import HolographicCard from "@/components/HolographicCard";
-import InteractiveSynapseNetwork from "@/components/InteractiveSynapseNetwork";
-import HomeSkinPicker from "@/components/HomeSkinPicker";
-import SynapseMark from "@/components/SynapseMark";
+import { ArrowRight, BriefcaseBusiness, Compass, ExternalLink, MessageCircleMore, Network, Radio, UsersRound } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { getGuestSkin } from "@/lib/skins";
 import { trpc } from "@/lib/trpc";
+import ConnectedNetworkCanvas from "@/components/ConnectedNetworkCanvas";
+import HolographicCard from "@/components/HolographicCard";
+import WhoAreWeMark from "@/components/WhoAreWeMark";
 
-const principles = [
-  {
-    icon: GitFork,
-    label: "Portals acquire",
-    description: "A public, interactive identity that makes people want to explore what you do.",
-  },
-  {
-    icon: UsersRound,
-    label: "Networks retain",
-    description: "Purposeful follows and Connections turn discovery into a lasting social graph.",
-  },
-  {
-    icon: Layers3,
-    label: "Signals make it live",
-    description: "Publish thoughtful updates without surrendering your audience to an algorithm.",
-  },
+const ecosystem = [
+  { icon: Compass, title: "Your Portal", copy: "A public home for the person, business, community, or idea you want people to understand." },
+  { icon: Radio, title: "Your Signals", copy: "Share updates, work, opportunities, and ideas with context—not noise." },
+  { icon: UsersRound, title: "Your Connections", copy: "Build relationships around shared interests, purpose, and possibility." },
 ];
 
-const plans = [
-  { name: "Free Core", price: "Free", note: "One identity, intentionally built.", features: ["1 Profile", "Public Portal", "Signals, Follow & Connect", "6 included Skins"] },
-  { name: "Pulse", price: "Later", note: "For people shaping several worlds.", features: ["Up to 3 Profiles", "9 included Skins", "Scheduled Signals & Nodes", "Advanced customization"], featured: true },
-  { name: "Nexus", price: "Later", note: "The full surface area of your network.", features: ["Up to 5 Profiles", "12 Skins + Brand Studio", "Custom-domain setup", "Advanced Path Analytics"] },
-];
+function initials(name: string) { return name.split(" ").filter(Boolean).slice(0, 2).map((word) => word[0]).join("").toUpperCase(); }
 
 export default function Home() {
   const { isAuthenticated, loading } = useAuth();
   const [, navigate] = useLocation();
-  const [guestSkin, setGuestSkin] = useState(() => getGuestSkin());
   const demo = trpc.platform.demo.useQuery();
   const demoProfile = demo.data?.profile;
   const demoPath = demoProfile ? `/${demoProfile.username}` : "/mediarevolution";
-  const demoInitials = demoProfile?.displayName.split(" ").filter(Boolean).slice(0, 2).map((word) => word[0]).join("").toUpperCase() || "MR";
+  const demoInitials = demoProfile ? initials(demoProfile.displayName) : "MR";
 
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    const nextPath = window.sessionStorage.getItem("synapse-post-login");
-    if (nextPath) {
-      window.sessionStorage.removeItem("synapse-post-login");
-      navigate(nextPath);
-      return;
-    }
-    navigate("/discover");
-  }, [isAuthenticated, navigate]);
+  useEffect(() => { if (!isAuthenticated) return; const nextPath = window.sessionStorage.getItem("whoarewe-post-login"); if (nextPath) { window.sessionStorage.removeItem("whoarewe-post-login"); navigate(nextPath); return; } navigate("/discover"); }, [isAuthenticated, navigate]);
+  if (loading || isAuthenticated) return <main className="min-h-screen bg-[#080B14]" />;
 
-  if (loading || isAuthenticated) return <main className="min-h-screen bg-[#070b14]" />;
+  return <main className="page-shell min-h-screen bg-[#080B14] text-white"><div className="grid-noise" /><header className="relative z-20 mx-auto flex max-w-7xl items-center justify-between px-4 py-5 sm:px-6 lg:px-8"><Link href="/" aria-label="WhoAreWe home"><WhoAreWeMark /></Link><nav className="hidden items-center gap-7 text-xs font-bold text-slate-400 md:flex"><Link href="/discover" className="transition hover:text-[#00D8FF]">Discover Portals</Link><a href="#ecosystem" className="transition hover:text-[#00D8FF]">How it works</a><Link href={demoPath} className="transition hover:text-[#00D8FF]">Visit a Portal</Link></nav><div className="flex items-center gap-3"><Link href="/access?next=/account" className="hidden text-xs font-bold text-slate-400 transition hover:text-[#00D8FF] sm:block">Sign In</Link><Link href="/join" className="secondary-button !rounded-full !px-4 !py-2.5 !text-xs">Create Your Portal</Link></div></header>
 
-  return (
-    <main className="page-shell min-h-screen bg-[#070b14]">
-      <div className="grid-noise" />
-      <header className="relative z-20 mx-auto flex max-w-7xl items-center justify-between px-4 py-5 sm:px-6 lg:px-8">
-        <Link href="/" className="flex items-center gap-2.5" aria-label="Synapse home">
-          <SynapseMark />
-        </Link>
-        <nav className="hidden items-center gap-7 text-xs font-bold text-slate-400 md:flex">
-          <Link href="/discover" className="transition hover:text-cyan-100">Discover</Link>
-          <a href="#membership" className="transition hover:text-cyan-100">Membership</a>
-          <Link href={demoPath} className="transition hover:text-cyan-100">Explore a Portal</Link>
-        </nav>
-        {isAuthenticated ? <Link href="/account" className="secondary-button !rounded-full !px-4 !py-2.5 !text-xs">My Portals</Link> : <div className="flex items-center gap-3"><Link href="/access?next=/account" className="hidden text-xs font-bold text-slate-400 transition hover:text-cyan-100 sm:block">Sign in</Link><Link href="/join" className="secondary-button !rounded-full !px-4 !py-2.5 !text-xs">Join Synapse</Link></div>}
-      </header>
+    <section className="relative z-10 mx-auto grid max-w-7xl gap-12 px-4 pb-20 pt-14 sm:px-6 lg:grid-cols-[1.04fr_.96fr] lg:items-center lg:px-8 lg:pb-28 lg:pt-24"><div className="max-w-2xl"><span className="eyebrow"><span className="signal-dot" /> The Network Behind Who We Are</span><h1 className="font-display mt-6 max-w-3xl text-4xl font-semibold tracking-[-.065em] text-white sm:text-5xl lg:text-[4.55rem] lg:leading-[.98]">More than a profile. <span className="bg-[linear-gradient(105deg,#7CFF38,#00D8FF_36%,#378DFF_66%,#9B4DFF)] bg-clip-text text-transparent">A place for what&apos;s possible.</span></h1><p className="mt-6 max-w-xl text-base leading-7 text-slate-400 sm:text-lg">WhoAreWe brings people, businesses, creators, communities, and ideas into a connected presence—so identity creates context and context creates opportunity.</p><div className="mt-8 flex flex-col gap-3 sm:flex-row"><Link href="/join" className="primary-button">Create Your Portal <ArrowRight size={16} /></Link><Link href={demoPath} className="secondary-button">Visit a Portal <ExternalLink size={16} /></Link></div><div className="mt-9 flex flex-wrap gap-x-7 gap-y-3 text-xs font-semibold text-slate-500"><span>People</span><span className="text-[#00D8FF]">→</span><span>Businesses</span><span className="text-[#9B4DFF]">→</span><span>Communities</span><span className="text-[#7CFF38]">→</span><span>Opportunity</span></div></div>
+      <ConnectedNetworkCanvas nodeCount={28} className="min-h-[410px] sm:min-h-[470px]"><div className="absolute inset-5 rounded-[1.5rem] border border-white/[.09] bg-[linear-gradient(150deg,rgba(19,29,52,.94),rgba(10,15,27,.86))] shadow-[0_28px_80px_rgba(0,0,0,.25)]" /><div className="absolute left-[12%] top-[16%] rounded-full border border-[#7CFF38]/30 bg-[#7CFF38]/10 px-3 py-2 text-[10px] font-extrabold uppercase tracking-[.12em] text-[#C4FF9A]">Identity</div><div className="absolute right-[11%] top-[22%] rounded-full border border-[#00D8FF]/30 bg-[#00D8FF]/10 px-3 py-2 text-[10px] font-extrabold uppercase tracking-[.12em] text-[#9DEFFF]">Connection</div><div className="absolute bottom-[18%] left-[13%] rounded-full border border-[#9B4DFF]/30 bg-[#9B4DFF]/10 px-3 py-2 text-[10px] font-extrabold uppercase tracking-[.12em] text-[#DFBFFF]">Opportunity</div><svg className="absolute inset-0 h-full w-full" viewBox="0 0 600 460" preserveAspectRatio="none" aria-hidden="true"><path d="M112 110 L306 225 L493 128 M306 225 L126 345 M306 225 L475 352" fill="none" stroke="rgba(147,213,245,.28)" strokeWidth="1" strokeDasharray="4 8" /></svg><HolographicCard className="absolute left-1/2 top-1/2 w-[14rem] -translate-x-1/2 -translate-y-1/2 p-5 sm:w-[17rem]"><div className="flex items-start justify-between gap-3"><span className="grid h-11 w-11 place-items-center overflow-hidden rounded-2xl bg-[var(--brand-gradient)] text-sm font-extrabold text-[#08101A]">{demoProfile?.avatarUrl ? <img src={demoProfile.avatarUrl} alt="" className="h-full w-full object-cover" /> : demoInitials}</span><span className="rounded-full border border-white/[.09] bg-white/[.025] px-2 py-1 text-[9px] font-extrabold uppercase tracking-[.11em] text-slate-400">Portal</span></div><p className="font-display mt-7 text-xl font-semibold tracking-[-.05em] text-white">{demoProfile?.displayName || "Media Revolution"}</p><p className="mt-1 text-xs font-semibold text-slate-500">@{demoProfile?.username || "mediarevolution"} · Business</p><p className="mt-4 text-xs leading-5 text-slate-400">A clear identity with places to explore, Signals to follow, and a reason to connect.</p><Link href={demoPath} className="mt-5 inline-flex items-center gap-2 text-xs font-bold text-[#00D8FF]">Visit Portal <ArrowRight size={14} /></Link></HolographicCard></ConnectedNetworkCanvas></section>
 
-      <section className="relative z-10 mx-auto grid max-w-7xl gap-12 px-4 pb-20 pt-16 sm:px-6 lg:grid-cols-[1.03fr_.97fr] lg:items-center lg:px-8 lg:pb-28 lg:pt-24">
-        <div className="max-w-2xl">
-          <span className="eyebrow"><span className="signal-dot" /> An intentional social identity network</span>
-          <h1 className="font-display mt-6 max-w-3xl text-4xl font-semibold tracking-[-0.06em] text-white sm:text-5xl lg:text-[4.2rem] lg:leading-[1.02]">
-            Your internet presence isn&apos;t a list. <span className="bg-gradient-to-r from-cyan-200 via-sky-300 to-violet-300 bg-clip-text text-transparent">It&apos;s a network.</span>
-          </h1>
-          <p className="mt-6 max-w-xl text-base font-medium leading-7 text-slate-400 sm:text-lg">
-            Build an identity people can explore. Connect your work, projects, places, and people—then participate in a social layer built around real relationships.
-          </p>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Link href={isAuthenticated ? "/account" : "/join"} className="primary-button">{isAuthenticated ? "Open My Portals" : "Create free Account"} <ArrowRight size={16} /></Link>
-            <Link href={demoPath} className="secondary-button">Explore a live Portal <Compass size={16} /></Link>
-          </div>
-          <Link href={demoPath} className="mt-3 flex w-fit max-w-full items-center gap-3 rounded-xl border border-cyan-200/16 bg-cyan-300/[.045] px-3 py-2.5 transition hover:border-cyan-200/35 hover:bg-cyan-300/[.08]">
-            <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-lg border border-cyan-200/25 bg-gradient-to-br from-cyan-200 via-sky-300 to-violet-400 text-[10px] font-extrabold text-[#07101f]">{demoProfile?.avatarUrl ? <img src={demoProfile.avatarUrl} alt="" className="h-full w-full object-cover" /> : demoInitials}</span>
-            <span className="min-w-0"><span className="block text-[9px] font-extrabold uppercase tracking-[.14em] text-cyan-100">Featured demo Portal</span><span className="mt-0.5 block truncate text-xs font-bold text-white">{demoProfile?.displayName || "Media Revolution"} <span className="font-medium text-slate-500">· @{demoProfile?.username || "mediarevolution"}</span></span></span>
-            <Compass size={15} className="shrink-0 text-cyan-100" />
-          </Link>
-          <div className="mt-9 flex flex-wrap gap-x-6 gap-y-3 text-xs font-semibold text-slate-500">
-            <span className="flex items-center gap-2"><Check size={14} className="text-cyan-200" /> Create an Account free</span>
-            <span className="flex items-center gap-2"><Check size={14} className="text-cyan-200" /> No card or payment details</span>
-            <span className="flex items-center gap-2"><Check size={14} className="text-cyan-200" /> No ads. No attention traps.</span>
-          </div>
-          {isAuthenticated ? <Link href="/skins" className="mt-8 inline-flex items-center gap-2 text-xs font-bold text-cyan-100 transition hover:text-cyan-50">Shape your full platform Skin <ArrowRight size={14} /></Link> : <HomeSkinPicker activeSkin={guestSkin} onChange={setGuestSkin} />}
-        </div>
+    <section id="ecosystem" className="relative z-10 border-y border-white/[.07] bg-[#0B1020]/70"><div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24"><div className="grid gap-8 md:grid-cols-[.7fr_1.3fr] md:items-end"><div><span className="eyebrow">Identity first. Network second. Opportunity third.</span><h2 className="font-display mt-5 text-3xl font-semibold tracking-[-.055em] text-white sm:text-4xl">Built for more than a bio.</h2></div><p className="max-w-2xl text-sm leading-7 text-slate-400">WhoAreWe keeps the helpful parts of a profile, professional network, creator space, and community directory—then connects them around purpose rather than endless engagement.</p></div><div className="mt-10 grid gap-4 md:grid-cols-3">{ecosystem.map(({ icon: Icon, title, copy }, index) => <HolographicCard key={title} className="p-6"><span className="text-[10px] font-extrabold tracking-[.15em] text-slate-600">0{index + 1}</span><span className="mt-9 grid h-11 w-11 place-items-center rounded-xl border border-white/[.1] bg-white/[.035] text-[#00D8FF]"><Icon size={20} /></span><h3 className="font-display mt-5 text-xl font-semibold text-white">{title}</h3><p className="mt-3 text-sm leading-6 text-slate-500">{copy}</p></HolographicCard>)}</div></div></section>
 
-        <InteractiveSynapseNetwork className="min-h-[390px] overflow-visible sm:min-h-[455px]">
-          <div className="absolute inset-8 rounded-[2rem] border border-cyan-100/[0.11] bg-[radial-gradient(circle_at_68%_25%,rgba(103,92,246,.25),transparent_25%),linear-gradient(145deg,rgba(17,30,56,.85),rgba(7,11,20,.5))] shadow-[0_32px_90px_rgba(0,0,0,.34)]" />
-          <div className="absolute left-[11%] top-[17%] h-11 w-11 rounded-full border border-cyan-100/30 bg-cyan-300/10 shadow-[0_0_30px_rgba(119,230,251,.28)]" />
-          <div className="absolute right-[14%] top-[16%] h-20 w-20 rounded-3xl border border-violet-200/20 bg-violet-300/10" />
-          <div className="absolute bottom-[14%] left-[13%] h-14 w-14 rounded-2xl border border-cyan-100/20 bg-sky-400/10" />
-          <div className="absolute bottom-[11%] right-[13%] h-12 w-12 rounded-full border border-violet-200/25 bg-violet-300/10" />
-          <svg className="absolute inset-0 h-full w-full" viewBox="0 0 600 460" preserveAspectRatio="none" aria-hidden="true">
-            <path d="M105 105 L300 225 L490 90 M300 225 L125 370 M300 225 L485 370" fill="none" stroke="rgba(124,212,251,.34)" strokeWidth="1" strokeDasharray="4 6" />
-            <circle cx="300" cy="225" r="8" fill="#baf2ff" opacity=".9" />
-          </svg>
-          <HolographicCard className="absolute left-1/2 top-1/2 w-[13.5rem] -translate-x-1/2 -translate-y-1/2 p-4 sm:w-[16rem] sm:p-5">
-            <div className="flex items-center justify-between">
-              <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-cyan-200 to-violet-400 text-[#07101f]"><Sparkles size={17} /></span>
-              <span className="text-[9px] font-extrabold uppercase tracking-[.15em] text-cyan-100/55">Your Portal</span>
-            </div>
-            <p className="font-display mt-6 text-xl font-semibold tracking-tight text-white">Everything that makes you, you.</p>
-            <p className="mt-2 text-xs leading-5 text-slate-400">A clear map of the people, work, ideas, and moments connected to your identity.</p>
-            <div className="mt-5 flex items-center gap-2 text-[10px] font-bold text-cyan-100"><span className="signal-dot !h-1.5 !w-1.5" /> 12 active nodes</div>
-          </HolographicCard>
-        </InteractiveSynapseNetwork>
-      </section>
+    <section className="relative z-10 mx-auto grid max-w-7xl gap-8 px-4 py-16 sm:px-6 lg:grid-cols-[1fr_.85fr] lg:items-center lg:px-8 lg:py-24"><div><span className="eyebrow"><Compass size={12} /> Discover with context</span><h2 className="font-display mt-5 max-w-2xl text-3xl font-semibold tracking-[-.055em] text-white sm:text-4xl">Discover who people are—and what they bring to the network.</h2><p className="mt-5 max-w-xl text-sm leading-7 text-slate-400">Explore people, businesses, creators, communities, and projects through their Portals. Follow a Signal, connect around shared intent, or find the next place to go.</p><Link href="/discover" className="primary-button mt-7">Discover Portals <Compass size={16} /></Link></div><div className="grid gap-3"><div className="rounded-2xl border border-white/[.09] bg-white/[.025] p-5"><BriefcaseBusiness className="text-[#7CFF38]" size={20} /><p className="font-display mt-4 text-lg font-semibold text-white">Business-ready by design</p><p className="mt-2 text-xs leading-5 text-slate-500">Services, booking links, projects, products, teams, and opportunities can grow as modular Portal content.</p></div><div className="rounded-2xl border border-white/[.09] bg-white/[.025] p-5"><MessageCircleMore className="text-[#9B4DFF]" size={20} /><p className="font-display mt-4 text-lg font-semibold text-white">Intentional participation</p><p className="mt-2 text-xs leading-5 text-slate-500">A Timeline shaped by Portals and Connections you choose—not by attention traps.</p></div></div></section>
 
-      <section id="model" className="relative z-10 mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
-        <div className="mb-10 flex flex-col justify-between gap-5 md:flex-row md:items-end">
-          <div className="max-w-xl"><span className="eyebrow">Built for an intentional internet</span><h2 className="font-display mt-5 text-3xl font-semibold tracking-[-.05em] text-white sm:text-4xl">One system. Three connected layers.</h2></div>
-          <p className="max-w-sm text-sm leading-6 text-slate-500">The Portal makes identity explorable. The Profile makes it social. The Network makes it valuable over time.</p>
-        </div>
-        <div className="grid gap-4 md:grid-cols-3">
-          {principles.map(({ icon: Icon, label, description }, index) => (
-            <HolographicCard key={label} className="p-6">
-              <span className="mb-10 flex text-xs font-extrabold tracking-[.14em] text-slate-600">0{index + 1}</span>
-              <span className="grid h-11 w-11 place-items-center rounded-2xl border border-white/10 bg-white/[.035] text-cyan-100"><Icon size={20} /></span>
-              <h3 className="font-display mt-6 text-xl font-semibold text-white">{label}</h3>
-              <p className="mt-3 text-sm leading-6 text-slate-500">{description}</p>
-            </HolographicCard>
-          ))}
-        </div>
-      </section>
-
-      <section className="relative z-10 border-y border-white/[0.07] bg-slate-950/25">
-        <div className="mx-auto grid max-w-7xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[.82fr_1.18fr] lg:items-center lg:px-8 lg:py-24">
-          <div><span className="eyebrow">Discovery first</span><h2 className="font-display mt-5 text-3xl font-semibold tracking-[-.05em] text-white sm:text-4xl">The Portal acquires. The Network retains.</h2><p className="mt-5 max-w-md text-sm leading-7 text-slate-400">A stranger can immediately understand and explore a public identity. When they want to follow, Connect, react, or publish, Synapse invites them to become an intentional participant.</p><Link href={demoPath} className="mt-7 inline-flex items-center gap-2 text-sm font-bold text-cyan-100 transition hover:gap-3">See the Portal experience <ArrowRight size={16} /></Link></div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {["Account", "Profile", "Portal", "Nodes", "Signals", "Network"].map((item, index) => <div key={item} className={`rounded-2xl border p-5 ${index === 2 || index === 5 ? "border-cyan-200/25 bg-cyan-300/[.07]" : "border-white/[.08] bg-white/[.02]"}`}><p className="text-[10px] font-extrabold uppercase tracking-[.14em] text-slate-600">0{index + 1}</p><p className="font-display mt-5 text-lg font-semibold text-white">{item}</p><p className="mt-1 text-xs leading-5 text-slate-500">{["The secure sign-in that owns your Profiles.", "The identity being represented.", "The public interactive layer.", "Everything connected to identity.", "What the identity publishes.", "The relationship system."][index]}</p></div>)}
-          </div>
-        </div>
-      </section>
-
-      <section id="membership" className="relative z-10 mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
-        <div className="mx-auto max-w-2xl text-center"><span className="eyebrow">Start with your identity</span><h2 className="font-display mt-5 text-3xl font-semibold tracking-[-.05em] text-white sm:text-4xl">Create free. Expand when you need to.</h2><p className="mt-4 text-sm leading-6 text-slate-500">Every new Account begins with Free Core—one Profile, public Portal, social participation, and six platform Skins. Paid upgrades are planned for later.</p></div>
-        <div className="mt-10 grid gap-4 lg:grid-cols-3">
-          {plans.map((plan) => <HolographicCard key={plan.name} className={`pricing-tier p-6 ${plan.featured ? "pricing-tier--featured" : ""}`}><div className="flex items-center justify-between"><p className="font-display text-lg font-semibold text-white">{plan.name}</p>{plan.featured && <span className="rounded-full bg-cyan-200 px-2.5 py-1 text-[9px] font-extrabold uppercase tracking-[.13em] text-[#061018]">Planned</span>}</div><p className="mt-5 font-display text-4xl font-semibold tracking-[-.05em] text-white">{plan.price}{plan.price === "Free" && <span className="ml-1 text-sm font-medium text-slate-500">to start</span>}</p><p className="mt-3 min-h-10 text-sm leading-5 text-slate-500">{plan.note}</p><ul className="mt-6 space-y-3 border-t border-white/[.09] pt-5">{plan.features.map((feature) => <li key={feature} className="flex items-center gap-2 text-xs font-semibold text-slate-300"><Check size={14} className="text-cyan-200" />{feature}</li>)}</ul><Link href="/join" className={plan.name === "Free Core" ? "primary-button mt-7 w-full" : "secondary-button mt-7 w-full"}>{plan.name === "Free Core" ? "Create free Account" : "Included later"}</Link></HolographicCard>)}
-        </div>
-      </section>
-
-      <footer className="relative z-10 border-t border-white/[.07] px-4 py-8 sm:px-6 lg:px-8"><div className="mx-auto flex max-w-7xl flex-col gap-4 text-xs text-slate-600 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-center gap-2 font-semibold text-slate-400"><Network size={14} className="text-cyan-200" /> Synapse · Identity, in motion.</div><div className="flex gap-5"><a href="#model" className="hover:text-slate-300">Principles</a><a href="#membership" className="hover:text-slate-300">Membership</a><Link href={demoPath} className="hover:text-slate-300">Demo Portal</Link></div></div></footer>
-    </main>
-  );
+    <footer className="relative z-10 border-t border-white/[.07] px-4 py-8 sm:px-6 lg:px-8"><div className="mx-auto flex max-w-7xl flex-col gap-4 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between"><WhoAreWeMark tagline /><div className="flex flex-wrap gap-5"><Link href="/discover" className="hover:text-[#00D8FF]">Discover Portals</Link><Link href="/join" className="hover:text-[#00D8FF]">Create Your Portal</Link><Link href={demoPath} className="hover:text-[#00D8FF]">Featured Portal</Link></div></div></footer>
+  </main>;
 }

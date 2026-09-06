@@ -191,7 +191,7 @@ export async function getOwnedNode(userId: number, profileId: number, nodeId: nu
   return rows[0] ?? null;
 }
 
-export async function createOwnedNode(userId: number, input: { profileId: number; type: "identity" | "social" | "web" | "content" | "conversion" | "synapse" | "event" | "product" | "booking" | "team"; title: string; subtitle?: string; description?: string; targetUrl?: string; positionX: number; positionY: number }) {
+export async function createOwnedNode(userId: number, input: { profileId: number; type: "identity" | "social" | "web" | "content" | "conversion" | "portal" | "event" | "product" | "booking" | "team"; title: string; subtitle?: string; description?: string; targetUrl?: string; positionX: number; positionY: number }) {
   const db = await getDb();
   if (!db) throw new Error("Database is unavailable");
   const profile = await getOwnedProfile(userId, input.profileId);

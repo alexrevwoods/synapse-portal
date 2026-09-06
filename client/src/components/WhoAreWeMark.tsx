@@ -1,0 +1,5 @@
+import { cn } from "@/lib/utils";
+
+export default function WhoAreWeMark({ className, label = true, tagline = false }: { className?: string; label?: boolean; tagline?: boolean }) {
+  return <span className={cn("whoarewe-mark", className)} aria-label="WhoAreWe"><span className="whoarewe-mark__icon" aria-hidden="true"><span className="whoarewe-mark__line whoarewe-mark__line--one" /><span className="whoarewe-mark__line whoarewe-mark__line--two" /><span className="whoarewe-mark__line whoarewe-mark__line--three" /><span className="whoarewe-mark__node whoarewe-mark__node--identity" /><span className="whoarewe-mark__node whoarewe-mark__node--connection" /><span className="whoarewe-mark__node whoarewe-mark__node--opportunity" /></span>{label && <span className="whoarewe-mark__copy"><span className="font-display whoarewe-mark__word"><span>Who</span><span className="whoarewe-mark__emphasis">Are</span><span>We</span></span>{tagline && <span className="whoarewe-mark__tagline">Where Identity Meets Opportunity.</span>}</span>}</span>;
+}

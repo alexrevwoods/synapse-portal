@@ -12,6 +12,6 @@ export default function Access() {
   const nextPath = safeNextPath(parameters.get("next"));
   const mode = parameters.get("mode") === "create" ? "create" : "signin";
   useEffect(() => { if (isAuthenticated) navigate(nextPath); }, [isAuthenticated, navigate, nextPath]);
-  if (loading) return <main className="min-h-screen bg-[#070b14]" />;
+  if (loading) return <main className="min-h-screen bg-[#080B14]" />;
   return <NeuralAccessLogin nextPath={nextPath} mode={mode} />;
 }

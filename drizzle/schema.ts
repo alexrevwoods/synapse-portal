@@ -45,7 +45,7 @@ export const memberships = mysqlTable(
 );
 
 export const profileType = mysqlEnum("profileType", ["personal", "creator", "business", "organization", "project"]);
-export const nodeType = mysqlEnum("nodeType", ["identity", "social", "web", "content", "conversion", "synapse", "event", "product", "booking", "team"]);
+export const nodeType = mysqlEnum("nodeType", ["identity", "social", "web", "content", "conversion", "portal", "event", "product", "booking", "team"]);
 export const signalVisibility = mysqlEnum("signalVisibility", ["public", "followers", "connections", "subscribers", "private"]);
 export const relationshipType = mysqlEnum("relationshipType", ["follow", "connection", "collaborator", "associated"]);
 export const relationshipStatus = mysqlEnum("relationshipStatus", ["pending", "accepted", "declined", "blocked"]);

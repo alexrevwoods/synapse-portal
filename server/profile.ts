@@ -17,7 +17,7 @@ import { INTEREST_KEYS } from "../shared/interests";
 import { protectedProcedure, router } from "./_core/trpc";
 
 const profileTypes = ["personal", "creator", "business", "organization", "project"] as const;
-export const nodeTypes = ["identity", "social", "web", "content", "conversion", "synapse", "event", "product", "booking", "team"] as const;
+export const nodeTypes = ["identity", "social", "web", "content", "conversion", "portal", "event", "product", "booking", "team"] as const;
 
 export function normalizeUsername(value: string) {
   return value.trim().replace(/^@/, "").toLowerCase();
@@ -67,7 +67,7 @@ export const profileRouter = router({
       return profile;
     } catch (error) {
       if (error instanceof TRPCError) throw error;
-      throw new TRPCError({ code: "CONFLICT", message: "That Synapse handle is already taken" });
+      throw new TRPCError({ code: "CONFLICT", message: "That WhoAreWe handle is already taken" });
     }
   }),
 

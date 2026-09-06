@@ -1,7 +1,7 @@
 export type MembershipPlan = "core" | "pulse" | "nexus";
 export type SkinTier = MembershipPlan;
 
-export type SynapseSkin = {
+export type WhoAreWeSkin = {
   id: string;
   name: string;
   tier: SkinTier;
@@ -11,7 +11,7 @@ export type SynapseSkin = {
   label: string;
 };
 
-export const SYNAPSE_SKINS: SynapseSkin[] = [
+export const WHOAREWE_SKINS: WhoAreWeSkin[] = [
   { id: "signal", name: "Signal", tier: "core", primary: "#77e6fb", secondary: "#7467ff", base: "#070b14", label: "Cyan signal + violet depth" },
   { id: "lagoon", name: "Lagoon", tier: "core", primary: "#5eead4", secondary: "#2787f5", base: "#061419", label: "Sea glass + deep blue" },
   { id: "iris", name: "Iris", tier: "core", primary: "#c4b5fd", secondary: "#5966ff", base: "#0d0a1f", label: "Lilac light + indigo" },
@@ -33,14 +33,14 @@ export function normalizeSkinId(value?: string | null) {
   return LEGACY_SKIN_IDS[value || ""] || value || "signal";
 }
 
-export function getSkin(id?: string | null): SynapseSkin {
+export function getSkin(id?: string | null): WhoAreWeSkin {
   const normalized = normalizeSkinId(id);
-  return SYNAPSE_SKINS.find((skin) => skin.id === normalized) || SYNAPSE_SKINS[0];
+  return WHOAREWE_SKINS.find((skin) => skin.id === normalized) || WHOAREWE_SKINS[0];
 }
 
 export function isKnownSkin(id?: string | null) {
   const normalized = normalizeSkinId(id);
-  return SYNAPSE_SKINS.some((skin) => skin.id === normalized);
+  return WHOAREWE_SKINS.some((skin) => skin.id === normalized);
 }
 
 export function canUseSkin(plan: MembershipPlan, id?: string | null) {
@@ -49,5 +49,5 @@ export function canUseSkin(plan: MembershipPlan, id?: string | null) {
 }
 
 export function skinsForPlan(plan: MembershipPlan) {
-  return SYNAPSE_SKINS.filter((skin) => canUseSkin(plan, skin.id));
+  return WHOAREWE_SKINS.filter((skin) => canUseSkin(plan, skin.id));
 }
