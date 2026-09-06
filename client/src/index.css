@@ -223,7 +223,8 @@ a { color: inherit; text-decoration: none; }
   mask-image: radial-gradient(circle at center, black, transparent 74%);
 }
 .graph-editor-stage { touch-action: none; }
-.portal-stage--interactive { touch-action: none; }
+.portal-stage--interactive { touch-action: none; cursor: grab; user-select: none; }
+.portal-stage--interactive:active { cursor: grabbing; }
 .neural-access { position: relative; display: grid; min-height: 100dvh; place-items: center; overflow: hidden; background: #050914; isolation: isolate; padding: 1.25rem; }
 .neural-access::after { content: ""; position: absolute; z-index: 1; inset: 0; pointer-events: none; background: radial-gradient(circle at var(--pointer-x, 50%) var(--pointer-y, 50%), rgba(119,230,251,.08), transparent 20%), linear-gradient(120deg, rgba(7,11,20,.7), rgba(5,9,18,.2) 55%, rgba(7,11,20,.65)); }
 .neural-access__stage { position: absolute; z-index: 0; inset: 0; overflow: hidden; opacity: .75; filter: url('#neural-goo'); }
@@ -252,7 +253,8 @@ a { color: inherit; text-decoration: none; }
 @media (prefers-reduced-motion: reduce) { .neural-access__blob { animation: none; } }
 .graph-editor-stage.is-placement-mode { cursor: crosshair; }
 .graph-editor-stage.is-placement-mode::after { content: ""; position: absolute; inset: 0; pointer-events: none; border: 1px dashed color-mix(in srgb, var(--skin-primary) 64%, transparent); border-radius: inherit; box-shadow: inset 0 0 60px color-mix(in srgb, var(--skin-primary) 8%, transparent); }
-.graph-editor-world { position: absolute; inset: 0; transform-origin: center center; transition: transform 240ms var(--ease-out); }
+.graph-editor-world { position: absolute; inset: 0; transform-origin: center center; transition: transform 180ms var(--ease-out); will-change: transform; }
+.graph-editor-world.is-manipulating { transition: none; }
 .graph-lines { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
 .graph-lines line { stroke: rgba(127, 207, 248, .34); stroke-width: .45; vector-effect: non-scaling-stroke; }
 .graph-lines line.muted { stroke: rgba(152, 164, 225, .17); stroke-dasharray: 2 3; }
@@ -296,6 +298,15 @@ a { color: inherit; text-decoration: none; }
 .mobile-node-overlay.is-open .mobile-node-overlay__pulse { animation: node-overlay-pulse 2.3s var(--ease-out) infinite; }
 .mobile-node-overlay__surface { position: relative; overflow: hidden; border: 1px solid color-mix(in srgb, var(--skin-primary) 48%, rgba(255,255,255,.14)); border-radius: 1.05rem; background: linear-gradient(135deg, color-mix(in srgb, var(--skin-primary) 16%, rgba(10,18,35,.96)), color-mix(in srgb, var(--skin-secondary) 13%, rgba(6,10,20,.98))); box-shadow: 0 20px 52px rgba(0,0,0,.54), inset 0 1px 0 rgba(255,255,255,.13); padding: .9rem; }
 .mobile-node-overlay__surface::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(115deg, rgba(255,255,255,.1), transparent 38%); }
+.desktop-node-overlay { display: none; }
+@media (min-width: 1024px) {
+  .desktop-node-overlay { display: block; position: absolute; z-index: 18; right: 1rem; bottom: 1rem; width: min(22rem, calc(100% - 2rem)); pointer-events: none; opacity: 0; transform: translateY(.75rem) scale(.97); transform-origin: bottom right; transition: opacity 160ms var(--ease-out), transform 180ms var(--ease-out); }
+  .desktop-node-overlay.is-open { pointer-events: auto; opacity: 1; transform: translateY(0) scale(1); }
+  .desktop-node-overlay__surface { position: relative; overflow: hidden; border: 1px solid color-mix(in srgb, var(--skin-primary) 48%, rgba(255,255,255,.14)); border-radius: 1.1rem; background: linear-gradient(135deg, color-mix(in srgb, var(--skin-primary) 17%, rgba(10,18,35,.98)), color-mix(in srgb, var(--skin-secondary) 13%, rgba(6,10,20,.99))); box-shadow: 0 24px 72px rgba(0,0,0,.58), inset 0 1px 0 rgba(255,255,255,.13); padding: 1rem; }
+  .desktop-node-overlay__surface::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(115deg, rgba(255,255,255,.1), transparent 38%); }
+  .desktop-node-overlay__pulse { position: absolute; inset: -.45rem; border: 1px solid color-mix(in srgb, var(--skin-primary) 50%, transparent); border-radius: 1.4rem; opacity: 0; pointer-events: none; }
+  .desktop-node-overlay.is-open .desktop-node-overlay__pulse { animation: node-overlay-pulse 2.3s var(--ease-out) infinite; }
+}
 @keyframes node-overlay-pulse { 0%, 100% { opacity: 0; transform: scale(.97); } 40% { opacity: .65; transform: scale(1.02); } }
 @keyframes map-focus-pulse { 0%, 100% { box-shadow: 0 0 0 .7rem color-mix(in srgb, var(--skin-primary) 8%, transparent), 0 0 2.25rem color-mix(in srgb, var(--skin-primary) 46%, transparent); } 50% { box-shadow: 0 0 0 1.05rem color-mix(in srgb, var(--skin-primary) 3%, transparent), 0 0 3rem color-mix(in srgb, var(--skin-primary) 60%, transparent); } }
 

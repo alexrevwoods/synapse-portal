@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, isNull, or } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, like, or } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   type InsertUser,
@@ -410,6 +410,43 @@ export async function getPublicSignalFeed(username: string, currentProfileId?: n
     .where(and(eq(signals.profileId, profile.id), eq(signals.visibility, "public")))
     .orderBy(desc(signals.publishedAt));
   return enrichSignals(rows, currentProfileId);
+}
+
+type DiscoveryType = "all" | "personal" | "creator" | "business" | "organization" | "project";
+
+export async function getDiscoverablePortals(input: { query?: string; profileType?: DiscoveryType }) {
+  const db = await getDb();
+  if (!db) return [];
+  const query = input.query?.trim().toLowerCase();
+  const conditions = [eq(profiles.isPublished, true)];
+  if (input.profileType && input.profileType !== "all") conditions.push(eq(profiles.type, input.profileType));
+  if (query) conditions.push(or(like(profiles.username, `%${query}%`), like(profiles.displayName, `%${query}%`), like(profiles.location, `%${query}%`))!);
+  const rows = await db.select().from(profiles).where(and(...conditions)).orderBy(desc(profiles.updatedAt)).limit(60);
+  return Promise.all(rows.map(async (profile) => ({
+    id: profile.id,
+    username: profile.username,
+    displayName: profile.displayName,
+    type: profile.type,
+    bio: profile.bio,
+    location: profile.location,
+    avatarUrl: profile.avatarUrl,
+    portalTheme: profile.portalTheme,
+    badges: await getPublicProfileBadges(profile),
+  })));
+}
+
+export async function getDiscoveryFeed(input: { query?: string; profileType?: DiscoveryType; currentProfileId?: number }) {
+  const db = await getDb();
+  if (!db) return [];
+  const query = input.query?.trim().toLowerCase();
+  const conditions = [eq(signals.visibility, "public"), eq(profiles.isPublished, true)];
+  if (input.profileType && input.profileType !== "all") conditions.push(eq(profiles.type, input.profileType));
+  if (query) conditions.push(or(like(profiles.username, `%${query}%`), like(profiles.displayName, `%${query}%`), like(signals.body, `%${query}%`))!);
+  const rows = await db.select({ signal: signals, profile: profiles }).from(signals).innerJoin(profiles, eq(signals.profileId, profiles.id)).where(and(...conditions)).orderBy(desc(signals.publishedAt)).limit(60);
+  if (!input.currentProfileId) return enrichSignals(rows);
+  const blockRows = await db.select().from(blocks).where(or(eq(blocks.sourceProfileId, input.currentProfileId), eq(blocks.targetProfileId, input.currentProfileId)));
+  const blockedProfileIds = new Set(blockRows.map((block) => block.sourceProfileId === input.currentProfileId ? block.targetProfileId : block.sourceProfileId));
+  return enrichSignals(rows.filter((row) => !blockedProfileIds.has(row.profile.id)), input.currentProfileId);
 }
 
 export async function getTimelineForProfile(userId: number, profileId: number) {

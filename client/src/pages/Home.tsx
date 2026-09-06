@@ -58,7 +58,7 @@ export default function Home() {
           <SynapseMark />
         </Link>
         <nav className="hidden items-center gap-7 text-xs font-bold text-slate-400 md:flex">
-          <a href="#model" className="transition hover:text-cyan-100">The model</a>
+          <Link href="/discover" className="transition hover:text-cyan-100">Discover</Link>
           <a href="#membership" className="transition hover:text-cyan-100">Membership</a>
           <Link href={demoPath} className="transition hover:text-cyan-100">Explore a Portal</Link>
         </nav>

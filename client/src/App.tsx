@@ -8,6 +8,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import Account from "./pages/Account";
 import Access from "./pages/Access";
 import BrandStudio from "./pages/BrandStudio";
+import Discover from "./pages/Discover";
 import Home from "./pages/Home";
 import Insights from "./pages/Insights";
 import Join from "./pages/Join";
@@ -27,6 +28,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/account" component={Account} />
       <Route path="/access" component={Access} />
+      <Route path="/discover" component={Discover} />
       <Route path="/skins" component={SkinStudio} />
       <Route path="/brand/:profileId" component={BrandStudio} />
       <Route path="/join" component={Join} />

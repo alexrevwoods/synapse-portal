@@ -36,6 +36,7 @@ export default function InteractiveSynapseNetwork({
     let width = 1;
     let height = 1;
     let pixelRatio = 1;
+    let lastFrameTime = 0;
 
     const resize = () => {
       const bounds = host.getBoundingClientRect();
@@ -47,7 +48,12 @@ export default function InteractiveSynapseNetwork({
       context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
     };
 
-    const render = () => {
+    const render = (timestamp = 0) => {
+      if (!reducedMotion && timestamp - lastFrameTime < 32) {
+        frame = window.requestAnimationFrame(render);
+        return;
+      }
+      lastFrameTime = timestamp;
       context.clearRect(0, 0, width, height);
       for (let i = 0; i < particles.length; i += 1) {
         const current = particles[i];
