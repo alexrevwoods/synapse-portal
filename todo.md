@@ -59,3 +59,9 @@ The release uses **WhoAreWe** spelling exactly, presents **Where Identity Meets 
 - [x] Add rich Signal-comment reactions: Spark, Love, Insight, and Celebrate.
 - [x] Add deep-linked notification actions that open the target Portal’s Signal conversation.
 - [x] Validate database migrations, typed APIs, TypeScript, tests, production build, and desktop map controls.
+
+## Clean Connected Portal Switching
+
+- [x] Prevent mobile and desktop destination sheets from opening when a visitor changes connected Portal regions.
+- [x] Preserve the animated region transition, breadcrumb, minimap, selected rail state, and root return control.
+- [x] Verify live Portal switching and rerun TypeScript, tests, and production build.
