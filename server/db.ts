@@ -182,7 +182,7 @@ export async function upsertOwnedNodeConnection(userId: number, input: { profile
   return rows[0] ?? null;
 }
 
-export async function createOwnedSignal(userId: number, input: { profileId: number; type: "text" | "link" | "image" | "gallery" | "node" | "article" | "video" | "audio"; body: string; visibility: "public" | "followers" | "connections" | "subscribers" | "private"; isPinned?: boolean; reminderAt?: Date }) {
+export async function createOwnedSignal(userId: number, input: { profileId: number; type: "text" | "link" | "image" | "gallery" | "node" | "article" | "video" | "audio"; body: string; visibility: "public" | "followers" | "connections" | "subscribers" | "private"; isPinned?: boolean; reminderAt?: Date; imageUrl?: string; imageAspect?: "wide" | "square" }) {
   const db = await getDb();
   if (!db) throw new Error("Database is unavailable");
   const profile = await getOwnedProfile(userId, input.profileId);
