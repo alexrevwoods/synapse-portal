@@ -40,3 +40,13 @@ The release uses **WhoAreWe** spelling exactly, presents **Where Identity Meets 
 - [x] Enrich public Portal data with the linked Portal's public Nodes and connection lines.
 - [x] Expand the live public map into a multi-region canvas: zoom and pan remain available, side controls shift to connected Portal regions, and connected destination cards open the linked Portal.
 - [x] Validate mobile onboarding, My Space, Builder, and public Portal map layouts, plus TypeScript, tests, and production build.
+
+## Portal Network and Signal Discussion Expansion
+
+- [x] Add a private **Network overview** to My Space for reviewing all owned Portals and their saved paths.
+- [x] Persist Portal-to-Portal relationship types and optional custom labels; expose them when creating or editing linked Portal Nodes.
+- [x] Surface relationship context in the public connected map, including region navigation, animated transitions, and a clickable minimap.
+- [x] Notify a Signal owner when a reply is made anywhere in that Signal’s discussion, while also notifying the direct parent commenter when applicable.
+- [x] Add owner-only edit and soft-delete controls for Signal comments and replies.
+- [x] Add unread conversation counts to Timeline, Portal Signals navigation, and the owner’s Portal tab; counts clear through the existing notification center.
+- [x] Validate schema migration, TypeScript, tests, production build, desktop layouts, and 390px mobile layouts.

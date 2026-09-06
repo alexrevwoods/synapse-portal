@@ -77,6 +77,34 @@ export async function getProfilesForUser(userId: number) {
   return db.select().from(profiles).where(eq(profiles.ownerUserId, userId)).orderBy(asc(profiles.createdAt));
 }
 
+/** Returns the account-owned Portal graph used by the private My Space overview. */
+export async function getAccountPortalNetwork(userId: number) {
+  const db = await getDb();
+  if (!db) return { portals: [], links: [] };
+  const ownedPortals = await getProfilesForUser(userId);
+  const portalIds = ownedPortals.map((portal) => portal.id);
+  if (!portalIds.length) return { portals: [], links: [] };
+  const portalById = new Map(ownedPortals.map((portal) => [portal.id, portal]));
+  const nodes = await db.select().from(profileNodes).where(inArray(profileNodes.profileId, portalIds));
+  const links = nodes
+    .filter((node) => node.type === "portal" && node.internalProfileId && portalById.has(node.internalProfileId))
+    .map((node) => {
+      const source = portalById.get(node.profileId)!;
+      const target = portalById.get(node.internalProfileId!)!;
+      return {
+        nodeId: node.id,
+        sourceProfileId: source.id,
+        sourceName: source.displayName,
+        targetProfileId: target.id,
+        targetName: target.displayName,
+        targetUsername: target.username,
+        relationshipType: node.portalRelationshipType ?? "related",
+        relationshipLabel: node.portalRelationshipLabel ?? "",
+      };
+    });
+  return { portals: ownedPortals, links };
+}
+
 export async function getProfileInterestKeys(profileId: number) {
   const db = await getDb();
   if (!db) return [];
@@ -204,14 +232,18 @@ export async function createOwnedNode(userId: number, input: { profileId: number
 }
 
 /** Creates a navigable Portal node that only an owner can point at another Portal they own. */
-export async function linkOwnedPortal(userId: number, input: { profileId: number; targetProfileId: number; positionX: number; positionY: number }) {
+export async function linkOwnedPortal(userId: number, input: { profileId: number; targetProfileId: number; positionX: number; positionY: number; relationshipType?: "related" | "brand" | "team" | "project" | "community" | "location"; relationshipLabel?: string }) {
   const db = await getDb();
   if (!db) throw new Error("Database is unavailable");
   if (input.profileId === input.targetProfileId) throw new Error("A Portal cannot link to itself");
   const [source, target] = await Promise.all([getOwnedProfile(userId, input.profileId), getOwnedProfile(userId, input.targetProfileId)]);
   if (!source || !target) return null;
   const existing = await db.select().from(profileNodes).where(and(eq(profileNodes.profileId, input.profileId), eq(profileNodes.type, "portal"), eq(profileNodes.internalProfileId, input.targetProfileId))).limit(1);
-  if (existing[0]) return existing[0];
+  if (existing[0]) {
+    await db.update(profileNodes).set({ portalRelationshipType: input.relationshipType ?? "related", portalRelationshipLabel: input.relationshipLabel?.trim() || null }).where(eq(profileNodes.id, existing[0].id));
+    const refreshed = await db.select().from(profileNodes).where(eq(profileNodes.id, existing[0].id)).limit(1);
+    return refreshed[0] ?? existing[0];
+  }
   const count = await db.select({ id: profileNodes.id }).from(profileNodes).where(eq(profileNodes.profileId, input.profileId));
   const result = await db.insert(profileNodes).values({
     profileId: input.profileId,
@@ -221,6 +253,8 @@ export async function linkOwnedPortal(userId: number, input: { profileId: number
     description: `Continue exploring ${target.displayName} and its connected destinations.`,
     targetUrl: `/${target.username}`,
     internalProfileId: target.id,
+    portalRelationshipType: input.relationshipType ?? "related",
+    portalRelationshipLabel: input.relationshipLabel?.trim() || null,
     positionX: input.positionX,
     positionY: input.positionY,
     sortOrder: count.length,
@@ -240,7 +274,7 @@ async function enrichPortalNodes(nodes: Array<typeof profileNodes.$inferSelect>,
   return nodes.map((node) => ({ ...node, linkedPortal: node.internalProfileId ? linkedById.get(node.internalProfileId) ?? null : null }));
 }
 
-export async function updateOwnedNode(userId: number, input: { profileId: number; nodeId: number; title?: string; subtitle?: string; description?: string; targetUrl?: string; positionX?: number; positionY?: number; isPublic?: boolean; accentColor?: string }) {
+export async function updateOwnedNode(userId: number, input: { profileId: number; nodeId: number; title?: string; subtitle?: string; description?: string; targetUrl?: string; positionX?: number; positionY?: number; isPublic?: boolean; accentColor?: string; portalRelationshipType?: "related" | "brand" | "team" | "project" | "community" | "location"; portalRelationshipLabel?: string }) {
   const db = await getDb();
   if (!db) throw new Error("Database is unavailable");
   const node = await getOwnedNode(userId, input.profileId, input.nodeId);
@@ -483,7 +517,7 @@ async function enrichSignals(rows: FeedRow[], currentProfileId?: number) {
       .select({ comment: signalComments, profile: profiles })
       .from(signalComments)
       .innerJoin(profiles, eq(signalComments.profileId, profiles.id))
-      .where(inArray(signalComments.signalId, signalIds))
+    .where(and(inArray(signalComments.signalId, signalIds), isNull(signalComments.deletedAt)))
       .orderBy(asc(signalComments.createdAt)),
     getMediaForSignals(db, signalIds),
   ]);
@@ -663,10 +697,10 @@ export async function createSignalComment(userId: number, input: { profileId: nu
   const signal = signalRows[0];
   if (!signal) return null;
   if (await isBlockedBetweenProfiles(actor.id, signal.profileId)) return null;
-  if (input.parentCommentId) {
-    const parentRows = await db.select().from(signalComments).where(and(eq(signalComments.id, input.parentCommentId), eq(signalComments.signalId, input.signalId))).limit(1);
-    if (!parentRows[0]) return null;
-  }
+  const parent = input.parentCommentId
+    ? (await db.select().from(signalComments).where(and(eq(signalComments.id, input.parentCommentId), eq(signalComments.signalId, input.signalId), isNull(signalComments.deletedAt))).limit(1))[0]
+    : null;
+  if (input.parentCommentId && !parent) return null;
   const result = await db.insert(signalComments).values({ signalId: input.signalId, profileId: input.profileId, parentCommentId: input.parentCommentId ?? null, body: input.body });
   const commentId = Number(result[0].insertId);
   const rows = await db
@@ -675,13 +709,43 @@ export async function createSignalComment(userId: number, input: { profileId: nu
     .innerJoin(profiles, eq(signalComments.profileId, profiles.id))
     .where(eq(signalComments.id, commentId))
     .limit(1);
-  const notificationProfileId = input.parentCommentId
-    ? (await db.select().from(signalComments).where(eq(signalComments.id, input.parentCommentId)).limit(1))[0]?.profileId
-    : signal.profileId;
-  if (notificationProfileId && notificationProfileId !== input.profileId) {
-    await createNotification({ profileId: notificationProfileId, actorProfileId: input.profileId, type: input.parentCommentId ? "signal_reply" : "signal_comment", signalId: signal.id, commentId });
-  }
+  const recipients = input.parentCommentId ? [parent?.profileId, signal.profileId] : [signal.profileId];
+  await Promise.all(Array.from(new Set(recipients.filter((profileId): profileId is number => Boolean(profileId) && profileId !== input.profileId))).map((profileId) =>
+    createNotification({ profileId, actorProfileId: input.profileId, type: input.parentCommentId ? "signal_reply" : "signal_comment", signalId: signal.id, commentId }),
+  ));
   return rows[0] ?? null;
+}
+
+export async function updateOwnedSignalComment(userId: number, input: { profileId: number; commentId: number; body: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is unavailable");
+  const actor = await getOwnedProfile(userId, input.profileId);
+  if (!actor) return null;
+  const rows = await db.select().from(signalComments).where(and(eq(signalComments.id, input.commentId), eq(signalComments.profileId, input.profileId), isNull(signalComments.deletedAt))).limit(1);
+  if (!rows[0]) return null;
+  await db.update(signalComments).set({ body: input.body }).where(eq(signalComments.id, input.commentId));
+  const updated = await db.select().from(signalComments).where(eq(signalComments.id, input.commentId)).limit(1);
+  return updated[0] ?? null;
+}
+
+export async function deleteOwnedSignalComment(userId: number, input: { profileId: number; commentId: number }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is unavailable");
+  const actor = await getOwnedProfile(userId, input.profileId);
+  if (!actor) return false;
+  const rows = await db.select().from(signalComments).where(and(eq(signalComments.id, input.commentId), eq(signalComments.profileId, input.profileId), isNull(signalComments.deletedAt))).limit(1);
+  if (!rows[0]) return false;
+  await db.update(signalComments).set({ deletedAt: new Date() }).where(eq(signalComments.id, input.commentId));
+  return true;
+}
+
+export async function getUnreadCommentCount(userId: number, profileId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const profile = await getOwnedProfile(userId, profileId);
+  if (!profile) return null;
+  const unread = await db.select({ id: notifications.id }).from(notifications).where(and(eq(notifications.profileId, profileId), isNull(notifications.readAt), inArray(notifications.type, ["signal_comment", "signal_reply"])));
+  return unread.length;
 }
 
 export async function createNotification(input: { profileId: number; actorProfileId?: number; type: "follow" | "connection_request" | "connection_accepted" | "signal_reaction" | "signal_comment" | "signal_reply"; signalId?: number; commentId?: number }) {

@@ -4,7 +4,7 @@ import { arrangeOwnedNodes, deleteOwnedNode, updateOwnedNode, upsertOwnedNodeCon
 import { protectedProcedure, router } from "./_core/trpc";
 
 const nodeUpdate = z.object({
-  profileId: z.number().int().positive(), nodeId: z.number().int().positive(), title: z.string().trim().min(1).max(160).optional(), subtitle: z.string().trim().max(220).optional(), description: z.string().trim().max(1000).optional(), targetUrl: z.string().url().max(2048).optional().or(z.literal("")), positionX: z.number().int().min(5).max(95).optional(), positionY: z.number().int().min(8).max(92).optional(), accentColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(), isPublic: z.boolean().optional(),
+  profileId: z.number().int().positive(), nodeId: z.number().int().positive(), title: z.string().trim().min(1).max(160).optional(), subtitle: z.string().trim().max(220).optional(), description: z.string().trim().max(1000).optional(), targetUrl: z.string().url().max(2048).optional().or(z.literal("")), positionX: z.number().int().min(5).max(95).optional(), positionY: z.number().int().min(8).max(92).optional(), accentColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(), isPublic: z.boolean().optional(), portalRelationshipType: z.enum(["related", "brand", "team", "project", "community", "location"]).optional(), portalRelationshipLabel: z.string().trim().max(72).optional(),
 });
 const arrangement = z.object({ profileId: z.number().int().positive(), positions: z.array(z.object({ nodeId: z.number().int().positive(), positionX: z.number().int().min(5).max(95), positionY: z.number().int().min(8).max(92) })).min(1).max(100) });
 

@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   createOwnedNode,
   createProfileForUser,
+  getAccountPortalNetwork,
   getAccountMembership,
   getBuilderProfile,
   getOwnedProfile,
@@ -19,6 +20,7 @@ import { protectedProcedure, router } from "./_core/trpc";
 
 const profileTypes = ["personal", "creator", "business", "organization", "project"] as const;
 export const nodeTypes = ["identity", "social", "web", "content", "conversion", "portal", "event", "product", "booking", "team"] as const;
+const portalRelationshipTypes = ["related", "brand", "team", "project", "community", "location"] as const;
 
 export function normalizeUsername(value: string) {
   return value.trim().replace(/^@/, "").toLowerCase();
@@ -41,6 +43,8 @@ const createProfileInput = z.object({
 
 export const profileRouter = router({
   my: protectedProcedure.query(({ ctx }) => getProfilesForUser(ctx.user.id)),
+
+  networkOverview: protectedProcedure.query(({ ctx }) => getAccountPortalNetwork(ctx.user.id)),
 
   capacity: protectedProcedure.query(async ({ ctx }) => {
     const [membership, existingProfiles] = await Promise.all([getAccountMembership(ctx.user.id), getProfilesForUser(ctx.user.id)]);
@@ -138,7 +142,7 @@ export const profileRouter = router({
     }),
 
   linkPortal: protectedProcedure
-    .input(z.object({ profileId: z.number().int().positive(), targetProfileId: z.number().int().positive(), positionX: z.number().int().min(5).max(95).default(82), positionY: z.number().int().min(8).max(92).default(28) }))
+    .input(z.object({ profileId: z.number().int().positive(), targetProfileId: z.number().int().positive(), positionX: z.number().int().min(5).max(95).default(82), positionY: z.number().int().min(8).max(92).default(28), relationshipType: z.enum(portalRelationshipTypes).default("related"), relationshipLabel: z.string().trim().max(72).optional() }))
     .mutation(async ({ ctx, input }) => {
       try {
         const node = await linkOwnedPortal(ctx.user.id, input);

@@ -1,0 +1,65 @@
+import { useMemo, useState } from "react";
+import { ArrowUpRight, GitBranch, Network, Route, Sparkles } from "lucide-react";
+import { Link } from "wouter";
+
+type Portal = {
+  id: number;
+  username: string;
+  displayName: string;
+  type: string;
+  avatarUrl: string | null;
+  isPublished: boolean;
+};
+
+type PortalLink = {
+  nodeId: number;
+  sourceProfileId: number;
+  sourceName: string;
+  targetProfileId: number;
+  targetName: string;
+  targetUsername: string;
+  relationshipType: "related" | "brand" | "team" | "project" | "community" | "location";
+  relationshipLabel: string;
+};
+
+const relationshipCopy: Record<PortalLink["relationshipType"], string> = {
+  related: "Related identity",
+  brand: "Brand family",
+  team: "Team space",
+  project: "Project space",
+  community: "Community space",
+  location: "Location space",
+};
+
+function initials(name: string) {
+  return name.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
+}
+
+export default function MySpaceNetworkMap({ portals, links, activeProfileId, onSelect }: { portals: Portal[]; links: PortalLink[]; activeProfileId: number | null; onSelect: (profileId: number) => void }) {
+  const [focusedId, setFocusedId] = useState<number | null>(activeProfileId);
+  const positions = useMemo(() => {
+    const layout = [[50, 50], [22, 24], [78, 76], [78, 24], [22, 76]];
+    return new Map(portals.map((portal, index) => [portal.id, layout[index % layout.length]]));
+  }, [portals]);
+  const focusPortal = portals.find((portal) => portal.id === focusedId) ?? portals[0];
+  const focusLinks = links.filter((link) => link.sourceProfileId === focusPortal?.id || link.targetProfileId === focusPortal?.id);
+  const select = (profileId: number) => { setFocusedId(profileId); onSelect(profileId); };
+
+  return <section id="network-map" className="scroll-mt-24 pt-9">
+    <div className="rounded-[1.35rem] border border-white/[.09] bg-[linear-gradient(140deg,rgba(13,31,54,.74),rgba(14,12,34,.86),rgba(7,11,20,.94))] p-4 sm:p-6">
+      <div className="flex flex-col gap-4 border-b border-white/[.08] pb-5 sm:flex-row sm:items-end sm:justify-between">
+        <div><span className="eyebrow"><Network size={12} /> Network overview</span><h2 className="font-display mt-4 text-2xl font-semibold tracking-[-.05em] text-white">Manage how your Portals connect.</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">Every linked Portal becomes a region in the public map. Select a Portal to review its outgoing and incoming identity paths.</p></div>
+        <span className="flex w-fit items-center gap-1.5 rounded-full border border-[#9B4DFF]/25 bg-[#9B4DFF]/[.08] px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-[.12em] text-[#E2C5FF]"><GitBranch size={13} /> {links.length} {links.length === 1 ? "path" : "paths"}</span>
+      </div>
+      {portals.length ? <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_18rem]">
+        <div className="relative min-h-[20rem] overflow-hidden rounded-2xl border border-white/[.08] bg-[radial-gradient(circle_at_50%_45%,rgba(0,216,255,.12),transparent_28%),radial-gradient(circle_at_18%_12%,rgba(155,77,255,.16),transparent_24%),#080d1a] sm:min-h-[25rem]">
+          <div className="absolute left-4 top-4 z-10 rounded-full border border-white/10 bg-slate-950/55 px-2.5 py-1 text-[9px] font-extrabold uppercase tracking-[.13em] text-slate-400">Private map · {portals.length} Portals</div>
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 h-full w-full" aria-hidden="true">{links.map((link) => { const source = positions.get(link.sourceProfileId); const target = positions.get(link.targetProfileId); return source && target ? <line key={link.nodeId} x1={source[0]} y1={source[1]} x2={target[0]} y2={target[1]} stroke="rgba(155,77,255,.8)" strokeWidth=".6" strokeDasharray="2.4 1.8" /> : null; })}</svg>
+          {portals.map((portal) => { const [x, y] = positions.get(portal.id) || [50, 50]; const isFocused = focusPortal?.id === portal.id; const outgoing = links.filter((link) => link.sourceProfileId === portal.id).length; return <button key={portal.id} type="button" onClick={() => select(portal.id)} style={{ left: `${x}%`, top: `${y}%` }} className={`absolute grid -translate-x-1/2 -translate-y-1/2 place-items-center rounded-2xl border px-3 py-2 text-left shadow-[0_14px_38px_rgba(0,0,0,.28)] transition duration-200 ${isFocused ? "scale-105 border-cyan-200/60 bg-cyan-300/[.16] text-white" : "border-white/[.16] bg-slate-950/75 text-slate-300 hover:scale-105 hover:border-[#9B4DFF]/60"}`}><span className="flex items-center gap-2"><span className="grid h-8 w-8 place-items-center overflow-hidden rounded-xl bg-[var(--brand-gradient)] text-[10px] font-extrabold text-[#08101A]">{portal.avatarUrl ? <img src={portal.avatarUrl} alt="" className="h-full w-full object-cover" /> : initials(portal.displayName)}</span><span className="min-w-0"><span className="block max-w-24 truncate text-[11px] font-extrabold">{portal.displayName}</span><span className="mt-0.5 block text-[8px] font-bold uppercase tracking-[.1em] text-slate-500">{outgoing} linked</span></span></span></button>; })}
+          {links.length === 0 && <div className="absolute inset-x-5 bottom-5 rounded-xl border border-dashed border-white/[.13] bg-slate-950/45 p-4 text-center"><Route className="mx-auto text-[#9B4DFF]" size={18} /><p className="mt-2 text-xs font-bold text-slate-300">Start with one intentional link.</p><p className="mt-1 text-[11px] leading-5 text-slate-600">Open a Portal Builder and use Link Portal to turn this overview into a navigable map.</p></div>}
+        </div>
+        <aside className="rounded-2xl border border-white/[.08] bg-slate-950/35 p-4"><p className="text-[10px] font-extrabold uppercase tracking-[.13em] text-cyan-100">Selected Portal</p>{focusPortal ? <><div className="mt-3 flex items-center gap-3"><span className="grid h-11 w-11 place-items-center overflow-hidden rounded-xl bg-[var(--brand-gradient)] text-xs font-extrabold text-[#08101A]">{focusPortal.avatarUrl ? <img src={focusPortal.avatarUrl} alt="" className="h-full w-full object-cover" /> : initials(focusPortal.displayName)}</span><div className="min-w-0"><p className="truncate text-sm font-bold text-white">{focusPortal.displayName}</p><p className="mt-0.5 text-[10px] font-bold uppercase tracking-[.1em] text-slate-600">{focusPortal.type}</p></div></div><div className="mt-5 space-y-2">{focusLinks.map((link) => { const targetName = link.sourceProfileId === focusPortal.id ? link.targetName : link.sourceName; return <div key={link.nodeId} className="rounded-xl border border-white/[.07] bg-white/[.025] p-3"><p className="text-[10px] font-extrabold uppercase tracking-[.11em] text-[#E2C5FF]">{link.relationshipLabel || relationshipCopy[link.relationshipType]}</p><p className="mt-1 text-xs font-bold text-slate-200">{link.sourceProfileId === focusPortal.id ? "Links to" : "Linked from"} {targetName}</p></div>; })}{focusLinks.length === 0 && <p className="rounded-xl border border-dashed border-white/[.11] p-3 text-xs leading-5 text-slate-600">No Portal paths are attached yet.</p>}</div><div className="mt-5 grid gap-2"><Link href={`/builder/${focusPortal.id}`} className="primary-button !px-3 !py-2.5 !text-xs"><Sparkles size={14} /> Manage links</Link><Link href={`/${focusPortal.username}`} target="_blank" className="secondary-button !px-3 !py-2.5 !text-xs">Preview public map <ArrowUpRight size={14} /></Link></div></> : null}</aside>
+      </div> : <div className="mt-5 rounded-xl border border-dashed border-white/[.12] p-8 text-center"><Network className="mx-auto text-slate-600" size={26} /><p className="mt-3 text-sm font-bold text-slate-300">Your connected identity map will appear here.</p></div>}
+    </div>
+  </section>;
+}

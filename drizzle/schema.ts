@@ -51,6 +51,7 @@ export const relationshipType = mysqlEnum("relationshipType", ["follow", "connec
 export const relationshipStatus = mysqlEnum("relationshipStatus", ["pending", "accepted", "declined", "blocked"]);
 export const reactionType = mysqlEnum("reactionType", ["spark"]);
 export const notificationType = mysqlEnum("notificationType", ["follow", "connection_request", "connection_accepted", "signal_reaction", "signal_comment", "signal_reply"]);
+export const portalRelationshipType = mysqlEnum("portalRelationshipType", ["related", "brand", "team", "project", "community", "location"]);
 
 export const profiles = mysqlTable(
   "profiles",
@@ -147,6 +148,8 @@ export const profileNodes = mysqlTable(
     description: text("description"),
     targetUrl: varchar("targetUrl", { length: 2048 }),
     internalProfileId: int("internalProfileId"),
+    portalRelationshipType: portalRelationshipType,
+    portalRelationshipLabel: varchar("portalRelationshipLabel", { length: 72 }),
     icon: varchar("icon", { length: 64 }),
     accentColor: varchar("accentColor", { length: 24 }),
     positionX: int("positionX").default(50).notNull(),
@@ -240,6 +243,7 @@ export const signalComments = mysqlTable(
     body: text("body").notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+    deletedAt: timestamp("deletedAt"),
   },
   (table) => ({ signalIndex: index("signal_comments_signal_idx").on(table.signalId, table.createdAt), parentIndex: index("signal_comments_parent_idx").on(table.parentCommentId) }),
 );
